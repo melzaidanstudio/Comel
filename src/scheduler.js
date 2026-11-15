@@ -13,6 +13,23 @@ function localMinutes(timezone) {
   return h * 60 + m;
 }
 
+/**
+ * Terjemahkan isian jam aktif trigger/akun:
+ *   ''  / 'default' → ikuti jam aktif default di Pengaturan (mis. 06:00-22:00)
+ *   '24h'           → selalu aktif
+ *   '07:00-12:00, 18:00-23:00' → rentang kustom
+ */
+export function resolveActiveHours(spec, settings) {
+  const s = String(spec || '').trim();
+  if (!s || s === 'default') {
+    const a = settings.active_start || '';
+    const b = settings.active_end || '';
+    return a && b && a !== b ? `${a}-${b}` : '';
+  }
+  if (s === '24h') return '';
+  return s;
+}
+
 /** "07:00-12:00, 18:00-23:00" — mendukung rentang lewat tengah malam (22:00-02:00). Kosong = 24 jam. */
 export function withinActiveHours(spec, timezone, minutes = localMinutes(timezone)) {
   const s = String(spec || '').trim();
@@ -41,8 +58,9 @@ async function tick() {
       const interval = Math.max(1, Number(t.interval_minutes) || 15) * 60;
       update('triggers', t.id, { next_run_at: now + interval });
       if (settings.paused) continue;
-      if (!withinActiveHours(t.active_hours, settings.timezone)) {
-        update('triggers', t.id, { last_status: `di luar jam aktif (${t.active_hours})` });
+      const hours = resolveActiveHours(t.active_hours, settings);
+      if (!withinActiveHours(hours, settings.timezone)) {
+        update('triggers', t.id, { last_status: `di luar jam aktif (${hours})` });
         continue;
       }
       runTrigger(t.id).catch((e) => {
@@ -56,6 +74,11 @@ async function tick() {
     for (const a of accounts) {
       update('accounts', a.id, { next_reply_at: now + Math.max(5, Number(a.reply_interval_minutes) || 30) * 60 });
       if (settings.paused) continue;
+      const hours = resolveActiveHours(a.reply_active_hours, settings);
+      if (!withinActiveHours(hours, settings.timezone)) {
+        update('accounts', a.id, { last_reply_status: `di luar jam aktif (${hours})` });
+        continue;
+      }
       runReplyJob(a.id).catch((e) => {
         log('error', `balas:${a.name}`, e.message);
         update('accounts', a.id, { last_reply_status: `ERROR: ${e.message.slice(0, 200)}` });

@@ -2,7 +2,7 @@
 
 Aplikasi pribadi untuk:
 
-1. Mengatur **akun Threads** (via **API resmi** atau **browser + cookie login**)
+1. Mengatur **akun Threads** (via **API resmi**, atau **browser** dengan **username + password tersimpan** / cookie)
 2. Mengatur **trigger kata kunci** dengan **filter viralitas** (suka, balasan, repost, share, quote) dan **filter waktu**
 3. **Scrape** Threads memakai **[Lightpanda](https://github.com/lightpanda-io/browser)** (tanpa login)
 4. Membuat **komentar** otomatis dengan AI di utas yang lolos filter
@@ -32,6 +32,7 @@ Semua diatur dari dashboard web berbahasa Indonesia yang dilindungi password.
 
 - Scraping dilakukan **tanpa login** (Threads menampilkan hasil pencarian, profil, dan balasan secara publik), jadi akun kamu tidak dipakai untuk scrape.
 - Postingan yang sudah pernah dikomentari tidak akan dikomentari lagi. Ada juga **jeda per penulis** (default 24 jam) dan **batas harian per akun**.
+- **Jam aktif**: default **06:00–22:00** (WIB). Di luar jam itu trigger & balas komentar tidak berjalan. Default bisa diubah di **Pengaturan**, dan tiap trigger/akun bisa memilih *Ikuti default*, *Atur sendiri*, atau *24 jam*.
 - Tombol **Pause semua** di sidebar menghentikan semua aksi otomatis seketika.
 
 ---
@@ -49,6 +50,7 @@ Buat trigger dengan isian:
 | Minimal suka / balasan / share | `100` / `50` / `50` |
 | Logika syarat viralitas | Semua syarat harus terpenuhi (AND) |
 | Umur postingan maksimal | misal `72` jam (0 = bebas) |
+| Jam aktif | Ikuti default (06:00–22:00) |
 | Jumlah komentar per putaran | `3` |
 | Setiap (menit) | `15` |
 | Instruksi | "Komentari makanannya secara spesifik dan antusias. Jangan promosi." |
@@ -173,18 +175,31 @@ Batas API dari Meta: ±250 postingan & ±1000 balasan per 24 jam per akun.
 
 > Catatan teknis: untuk postingan hasil scrape, Comel memakai field `fbid` dari halaman Threads sebagai `reply_to_id` (dengan fallback ke `pk`). Ini belum bisa diuji dari lingkungan pengembangan; bila balasan via API gagal dengan pesan ID tidak valid, laporkan pesan error-nya dari menu **Riwayat**.
 
-### B. Browser + cookie login
+### B. Browser (login dengan username + password, atau cookie)
 
-Meniru pengguna sungguhan di threads.com memakai cookie sesi.
+Meniru pengguna sungguhan di threads.com.
+
+**Cara 1 — simpan data login (Lightpanda login sendiri):**
+
+1. Form akun → metode **Browser** → bagian *Login otomatis*: isi **username / email / no. HP** dan **password**.
+2. (Opsional) **Kunci 2FA authenticator** — kunci base32 yang muncul saat mengaktifkan 2FA dengan aplikasi authenticator (Google Authenticator, dll). Dengan ini kode 2FA dibuat otomatis.
+3. Simpan → klik **Login sekarang**. Lightpanda membuka threads.com/login, mengisi form, lalu menyimpan cookie sesi.
+4. Bila 2FA via **SMS/WhatsApp**, dashboard akan meminta kode (berlaku 5 menit).
+
+Setelah itu, bila sesi kedaluwarsa, Comel **login ulang otomatis** (maks 1× per 30 menit). Bila login gagal karena password salah atau Meta meminta verifikasi ("Ini saya?"), login otomatis **dijeda** supaya akun tidak terkunci — selesaikan verifikasi di HP lalu klik *Login sekarang*.
+
+Keamanan: password & kunci 2FA disimpan **terenkripsi AES-256-GCM** di database; kuncinya di `data/.secret_key` (atau env `SECRET_KEY`). Password tidak pernah dikirim balik ke browser. Jika `data/.secret_key` hilang, isi ulang password.
+
+**Cara 2 — tempel cookie:**
 
 1. Login ke <https://www.threads.com> di Chrome/Firefox.
 2. Pasang ekstensi **Cookie-Editor** → buka threads.com → **Export → JSON**.
-3. Tempel di form akun (metode **Browser + cookie**). Bisa juga format header: `sessionid=...; csrftoken=...; ds_user_id=...`
+3. Tempel di kolom *Cookie* pada form akun. Bisa juga format header: `sessionid=...; csrftoken=...; ds_user_id=...`
 4. Isi **username** (tanpa @) → **Tes koneksi**.
 
-Engine:
-- **Chromium** — paling andal untuk mengetik & klik di threads.com (default).
-- **Lightpanda** — ringan, tapi dukungan form kompleks masih eksperimental.
+Browser yang dipakai bisa dipilih terpisah:
+- **Browser untuk login** — default **Lightpanda** (sudah diuji bisa mengirim form login Threads).
+- **Browser untuk kirim komentar** — default **Chromium** (paling andal untuk mengetik & klik); Lightpanda bisa dipilih tapi masih eksperimental untuk editor teks Threads.
 
 ⚠️ Metode ini **melanggar Ketentuan Meta** tentang akses otomatis dan lebih rawan checkpoint/banned. Selector tombol bisa berubah sewaktu-waktu jika Meta mengubah tampilan; bila gagal, screenshot disimpan di `data/screenshots/` dan bisa dibuka dari menu **Riwayat**. Cookie diperbarui otomatis setelah tiap sesi; bila kedaluwarsa, ekspor ulang.
 
@@ -258,6 +273,7 @@ Tes: `npm test`
 | `Lightpanda tidak ditemukan` | Install Lightpanda atau set `LIGHTPANDA_BIN` |
 | Preview 0 postingan | Coba kata pencarian lain; Lightpanda nightly kadang gagal — cek menu Log/Dasbor |
 | `Threads API 400 … reply_to_id` | Pastikan app punya izin `threads_keyword_search`/`threads_manage_mentions` |
-| `Cookie tidak valid / kedaluwarsa` | Login ulang di browser, ekspor cookie lagi |
+| `Sesi login tidak valid / kedaluwarsa` | Klik *Login sekarang* (bila password tersimpan) atau ekspor cookie lagi |
+| `Login gagal: password salah` / checkpoint | Perbaiki password / setujui login di HP, lalu *Login sekarang* (login otomatis dijeda sampai itu) |
 | `Tombol balas/Post tidak ditemukan` | Tampilan Threads berubah; lihat screenshot di Riwayat |
 | Lupa password dashboard | Lihat `data/.admin_password`, atau set `ADMIN_PASSWORD` di `.env` |

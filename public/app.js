@@ -62,6 +62,7 @@ function fieldHtml(f, v) {
   const help = f.help ? `<span class="help">${f.help}</span>` : '';
   const cls = f.full ? 'full' : '';
   const when = f.when ? ' data-when="1"' : '';
+  if (f.type === 'activehours') return activeHoursHtml(f, val, cls, when, help);
   if (f.type === 'section') return `<div class="section"${when} data-key="${f.key || ''}">${esc(f.label)}</div>`;
   if (f.type === 'checkbox') {
     return `<label class="check ${cls}" data-key="${f.key}"${when}><input type="checkbox" name="${f.key}" ${Number(val) ? 'checked' : ''}><span>${esc(f.label)}${help}</span></label>`;
@@ -79,10 +80,44 @@ function fieldHtml(f, v) {
   return `<label class="field ${cls}" data-key="${f.key}"${when}>${esc(f.label)}${input}${help}</label>`;
 }
 
+function defaultHoursLabel() {
+  const s = state.settings || {};
+  return s.active_start && s.active_end && s.active_start !== s.active_end ? `${s.active_start}–${s.active_end}` : '24 jam';
+}
+function activeHoursHtml(f, val, cls, when, help) {
+  const v = String(val || '').trim();
+  const mode = !v || v === 'default' ? 'default' : v === '24h' ? '24h' : 'custom';
+  const [start = '06:00', end = '22:00'] = mode === 'custom' ? v.split(',')[0].split('-').map((x) => x.trim()) : [];
+  return `<div class="field activehours ${cls}" data-key="${f.key}"${when}>${esc(f.label)}
+    <select name="${f.key}__mode">
+      <option value="default" ${mode === 'default' ? 'selected' : ''}>Ikuti default (${esc(defaultHoursLabel())})</option>
+      <option value="custom" ${mode === 'custom' ? 'selected' : ''}>Atur sendiri</option>
+      <option value="24h" ${mode === '24h' ? 'selected' : ''}>24 jam (selalu aktif)</option>
+    </select>
+    <div class="ah-range ${mode === 'custom' ? '' : 'hidden'}">
+      <label>Mulai <input type="time" name="${f.key}__start" value="${esc(start)}"></label>
+      <label>Selesai <input type="time" name="${f.key}__end" value="${esc(end)}"></label>
+    </div>${help}</div>`;
+}
+function activeHoursLabel(v) {
+  const s = String(v || '').trim();
+  if (!s || s === 'default') return `${defaultHoursLabel()} (default)`;
+  if (s === '24h') return '24 jam';
+  return s.replace(/-/g, '–');
+}
+
 function readForm(fields, root) {
   const out = {};
   for (const f of fields) {
     if (!f.key || f.type === 'section') continue;
+    if (f.type === 'activehours') {
+      const mode = root.querySelector(`[name="${f.key}__mode"]`)?.value;
+      if (!mode) continue;
+      const a = root.querySelector(`[name="${f.key}__start"]`).value;
+      const b = root.querySelector(`[name="${f.key}__end"]`).value;
+      out[f.key] = mode === 'default' ? '' : mode === '24h' ? '24h' : (a && b ? `${a}-${b}` : '');
+      continue;
+    }
     const el = root.querySelector(`[name="${f.key}"]`);
     if (!el) continue;
     if (f.type === 'checkbox') out[f.key] = el.checked ? 1 : 0;
@@ -94,6 +129,9 @@ function readForm(fields, root) {
 }
 
 function applyWhen(fields, root) {
+  $$('.activehours', root).forEach((el) => {
+    el.querySelector('.ah-range').classList.toggle('hidden', el.querySelector('select').value !== 'custom');
+  });
   const vals = readForm(fields, root);
   for (const f of fields) {
     if (!f.when) continue;
@@ -177,7 +215,7 @@ function triggerMiniTable() {
     ${state.triggers.map((t) => `<tr>
       <td><b>${esc(t.name)}</b> ${t.enabled ? '' : '<span class="badge">nonaktif</span>'} ${t.dry_run ? '<span class="badge info">dry-run</span>' : ''}</td>
       <td>${esc(accountName(t.account_id))}</td>
-      <td>${t.actions_per_run}× / ${t.interval_minutes} mnt</td>
+      <td>${t.actions_per_run}× / ${t.interval_minutes} mnt<div class="sub">${esc(activeHoursLabel(t.active_hours))}</div></td>
       <td>${lastStatusBadge(t.last_status)}<div class="sub">${ago(t.last_run_at)}</div></td>
       <td>${t.enabled ? ago(t.next_run_at) : '—'}</td>
       <td class="row-actions"><button class="btn small" data-run="${t.id}">Jalankan</button></td>
@@ -227,7 +265,7 @@ const TRIGGER_FIELDS = [
   { type: 'section', label: 'Filter waktu' },
   { key: 'max_age_hours', label: 'Umur postingan maksimal (jam)', type: 'number', default: 72, help: '0 = tanpa batas. Contoh 24 = hanya postingan 24 jam terakhir.' },
   { key: 'min_age_minutes', label: 'Umur postingan minimal (menit)', type: 'number', default: 0 },
-  { key: 'active_hours', label: 'Jam aktif', placeholder: '07:00-22:00', help: 'Kosong = 24 jam. Bisa beberapa: 07:00-11:00, 18:00-23:00' },
+  { key: 'active_hours', label: 'Jam aktif', type: 'activehours', help: 'Di luar jam ini trigger tidak berjalan. Default bisa diubah di Pengaturan.' },
   { key: 'sort_by', label: 'Prioritas', type: 'select', options: [['engagement', 'Paling viral dulu'], ['newest', 'Paling baru dulu']] },
   { type: 'section', label: 'Jadwal' },
   { key: 'actions_per_run', label: 'Jumlah komentar per putaran', type: 'number', default: 3 },
@@ -277,7 +315,8 @@ function triggerCard(t) {
         ${t.match_expr ? `<span>Filter: <b class="mono">${esc(t.match_expr)}</b></span>` : ''}
         <span>Viral: <b>${metrics || 'tanpa syarat'}</b></span>
         <span>Umur: <b>${t.max_age_hours ? `≤ ${t.max_age_hours} jam` : 'bebas'}</b></span>
-        <span>Jadwal: <b>${t.actions_per_run}× tiap ${t.interval_minutes} menit</b>${t.active_hours ? ` (${esc(t.active_hours)})` : ''}</span>
+        <span>Jadwal: <b>${t.actions_per_run}× tiap ${t.interval_minutes} menit</b></span>
+        <span>Jam aktif: <b>${esc(activeHoursLabel(t.active_hours))}</b></span>
       </div>
       <div style="margin-top:8px">${lastStatusBadge(t.last_status)} <span class="muted">· terakhir ${ago(t.last_run_at)} · berikutnya ${t.enabled ? ago(t.next_run_at) : '—'}</span></div>
     </div>
@@ -344,9 +383,17 @@ const ACCOUNT_FIELDS = [
   { type: 'section', key: 'sec_api', label: 'API resmi Threads', when: (v) => v.method === 'api' },
   { key: 'access_token', label: 'Access token', type: 'password', full: true, when: (v) => v.method === 'api', help: 'Long-lived token dari Meta for Developers (lihat README). Kosongkan bila tidak ingin mengganti. Token diperbarui otomatis tiap minggu.' },
 
-  { type: 'section', key: 'sec_browser', label: 'Browser + cookie', when: (v) => v.method === 'browser' },
-  { key: 'cookies', label: 'Cookie threads.com', type: 'textarea', full: true, rows: 4, when: (v) => v.method === 'browser', placeholder: '[{"name":"sessionid","value":"...","domain":".threads.com"}, ...]   atau   sessionid=...; csrftoken=...; ds_user_id=...', help: 'Ekspor dari browser yang sudah login (ekstensi Cookie-Editor → Export JSON). Kosongkan bila tidak ingin mengganti.' },
-  { key: 'browser_engine', label: 'Engine browser', type: 'select', when: (v) => v.method === 'browser', options: [['chromium', 'Chromium (paling andal)'], ['lightpanda', 'Lightpanda (ringan, eksperimental)']] },
+  { type: 'section', key: 'sec_login', label: 'Login otomatis (username & password)', when: (v) => v.method === 'browser' },
+  { key: 'login_username', label: 'Username / email / no. HP', when: (v) => v.method === 'browser', placeholder: 'username Instagram/Threads', help: 'Akun yang dipakai login di threads.com' },
+  { key: 'login_password', label: 'Password', type: 'password', when: (v) => v.method === 'browser', help: 'Disimpan terenkripsi (AES-256) di server, tidak pernah ditampilkan lagi.' },
+  { key: 'totp_secret', label: 'Kunci 2FA authenticator (opsional)', type: 'password', when: (v) => v.method === 'browser', placeholder: 'JBSWY3DPEHPK3PXP', help: 'Isi jika 2FA pakai aplikasi authenticator → kode dibuat otomatis. Jika 2FA via SMS, kosongkan (kode diminta saat "Login sekarang").' },
+  { key: 'login_engine', label: 'Browser untuk login', type: 'select', when: (v) => v.method === 'browser', options: [['lightpanda', 'Lightpanda (default)'], ['chromium', 'Chromium']] },
+  { key: 'auto_login', label: 'Login ulang otomatis bila sesi kedaluwarsa', type: 'checkbox', default: 1, when: (v) => v.method === 'browser', help: 'Maks 1 percobaan per 30 menit; berhenti otomatis bila password salah / diminta verifikasi.' },
+  { key: 'clear_login_password', label: 'Hapus password & kunci 2FA tersimpan', type: 'checkbox', when: (v) => v.method === 'browser' && v._has_login },
+
+  { type: 'section', key: 'sec_browser', label: 'Sesi browser', when: (v) => v.method === 'browser' },
+  { key: 'browser_engine', label: 'Browser untuk kirim komentar', type: 'select', when: (v) => v.method === 'browser', options: [['chromium', 'Chromium (paling andal)'], ['lightpanda', 'Lightpanda (ringan, eksperimental)']] },
+  { key: 'cookies', label: 'Cookie threads.com (opsional)', type: 'textarea', full: true, rows: 3, when: (v) => v.method === 'browser', placeholder: '[{"name":"sessionid","value":"...","domain":".threads.com"}, ...]   atau   sessionid=...; csrftoken=...', help: 'Alternatif tanpa password. Terisi otomatis setelah login berhasil. Kosongkan bila tidak ingin mengganti.' },
   { key: 'scrape_with_cookies', label: 'Scrape juga pakai cookie akun ini', type: 'checkbox', when: (v) => v.method === 'browser', help: 'Default scrape tanpa login (lebih aman untuk akun).' },
 
   { type: 'section', label: 'Balas komentar otomatis' },
@@ -355,6 +402,7 @@ const ACCOUNT_FIELDS = [
   { key: 'reply_interval_minutes', label: 'Cek setiap (menit)', type: 'number', default: 30 },
   { key: 'reply_per_run', label: 'Maks balasan per putaran', type: 'number', default: 5 },
   { key: 'reply_max_age_hours', label: 'Hanya komentar ≤ (jam)', type: 'number', default: 48 },
+  { key: 'reply_active_hours', label: 'Jam aktif balas komentar', type: 'activehours' },
   { key: 'reply_instruction', label: 'Instruksi membalas', type: 'textarea', full: true, rows: 3, placeholder: 'Balas dengan ramah dan nyambung. Kalau ditanya lokasi/harga, jawab sesuai memory.md. Kalau komentarnya negatif, tetap sopan.' },
   { key: 'reply_dry_run', label: 'Dry run balasan (buat tapi jangan kirim)', type: 'checkbox', full: true },
 ];
@@ -370,6 +418,11 @@ pages.accounts = async (main) => {
     const r = await api(`/accounts/${b.dataset.verify}/verify`, { method: 'POST' });
     toast(r.username ? `Berhasil terhubung sebagai @${r.username}` : 'Cookie valid, sudah login');
   }).then(() => loadRefs()).then(render); });
+  $$('[data-login]', main).forEach((b) => { b.onclick = () => withBusy(b, async () => {
+    const id = Number(b.dataset.login);
+    const r = await api(`/accounts/${id}/login`, { method: 'POST' });
+    if (r.needs2fa) ask2fa(id, r.message); else toast('Login berhasil, sesi disimpan');
+  }).then(() => loadRefs()).then(() => !$('#modal').open && render()); });
   $$('[data-run-replies]', main).forEach((b) => { b.onclick = () => withBusy(b, async () => {
     const r = await api(`/accounts/${b.dataset.runReplies}/run-replies`, { method: 'POST' });
     toast(`Balas komentar: ${r.status}`);
@@ -386,7 +439,10 @@ pages.accounts = async (main) => {
 function accountCard(a) {
   const auth = a.method === 'api'
     ? (a.has_token ? `token ${esc(a.token_masked)}` : '<span style="color:var(--err)">token belum diisi</span>')
-    : (a.cookie_info.hasSession ? `${a.cookie_info.count} cookie (sessionid ✓) · ${esc(a.browser_engine)}` : '<span style="color:var(--err)">cookie sessionid belum ada</span>');
+    : [
+      a.has_login_password ? `password tersimpan ✓${a.has_totp ? ' · 2FA otomatis ✓' : ''}${a.login_paused ? ' · <span style="color:var(--warn)">login otomatis dijeda</span>' : ''}` : '',
+      a.cookie_info.hasSession ? 'sesi aktif ✓' : '<span style="color:var(--err)">belum ada sesi</span>',
+    ].filter(Boolean).join(' · ');
   const note = a.status_note ? `<span class="badge ${/^ERROR/.test(a.status_note) ? 'err' : 'ok'}">${esc(a.status_note)}</span>` : '<span class="badge">belum dites</span>';
   return `<div class="card"><div class="item">
     <div>
@@ -400,6 +456,7 @@ function accountCard(a) {
       <div style="margin-top:8px">${note} ${a.reply_enabled && a.last_reply_status ? lastStatusBadge(`balas: ${a.last_reply_status}`) : ''}</div>
     </div>
     <div class="row-actions">
+      ${a.method === 'browser' && a.has_login_password ? `<button class="btn small" data-login="${a.id}">Login sekarang</button>` : ''}
       <button class="btn small" data-verify="${a.id}">Tes koneksi</button>
       <button class="btn small" data-run-replies="${a.id}">Balas komentar sekarang</button>
       <button class="btn small" data-persona="${a.id}">Persona</button>
@@ -409,17 +466,39 @@ function accountCard(a) {
   </div></div>`;
 }
 
+function ask2fa(id, message) {
+  openForm({
+    title: 'Kode 2FA',
+    fields: [{ key: 'code', label: 'Kode verifikasi', required: true, placeholder: '123456', full: true, help: esc(message || 'Masukkan kode dari SMS / aplikasi authenticator. Berlaku 5 menit.') }],
+    submitLabel: 'Kirim kode',
+    onSubmit: async (v) => {
+      await api(`/accounts/${id}/login/2fa`, { method: 'POST', body: { code: v.code } });
+      toast('Login berhasil, sesi disimpan');
+      await loadRefs(); render();
+    },
+  });
+}
+
 function editAccount(id) {
-  const a = id ? state.accounts.find((x) => x.id === id) : { method: 'api' };
+  const a = id ? { ...state.accounts.find((x) => x.id === id) } : { method: 'api', auto_login: 1, login_engine: 'lightpanda' };
+  a._has_login = a.has_login_password;
+  const fields = ACCOUNT_FIELDS.map((f) => {
+    if (f.key === 'login_password' && a.has_login_password) return { ...f, placeholder: '•••••••• (tersimpan — isi untuk mengganti)' };
+    if (f.key === 'totp_secret' && a.has_totp) return { ...f, placeholder: '•••••••• (tersimpan — isi untuk mengganti)' };
+    if (f.key === 'access_token' && a.has_token) return { ...f, placeholder: `${a.token_masked} (tersimpan — isi untuk mengganti)` };
+    if (f.key === 'clear_login_password') return { ...f, when: (v) => v.method === 'browser' && a.has_login_password };
+    return f;
+  });
   openForm({
     title: id ? `Edit akun: ${a.name}` : 'Akun baru',
-    fields: ACCOUNT_FIELDS,
+    fields,
     values: a,
     extraHtml: id ? '' : '<div class="callout" style="margin-bottom:12px">Panduan mendapatkan access token / cookie ada di README proyek.</div>',
     onSubmit: async (v) => {
+      if (v.clear_login_password) v.clear_totp_secret = 1;
       if (id) await api(`/accounts/${id}`, { method: 'PUT', body: v });
       else await api('/accounts', { method: 'POST', body: v });
-      toast('Akun disimpan. Klik "Tes koneksi" untuk memeriksa login.');
+      toast(v.method === 'browser' && v.login_password ? 'Akun disimpan. Klik "Login sekarang" untuk login.' : 'Akun disimpan. Klik "Tes koneksi" untuk memeriksa login.');
       await loadRefs(); render();
     },
   });
@@ -565,6 +644,8 @@ pages.history = async (main) => {
 
 // ---------- settings ----------
 const SETTINGS_FIELDS = [
+  { key: 'active_start', label: 'Jam aktif default — mulai', type: 'time', help: 'Dipakai trigger & balas komentar yang memilih "Ikuti default"' },
+  { key: 'active_end', label: 'Jam aktif default — selesai', type: 'time', help: 'Mulai = selesai berarti 24 jam. Bisa lewat tengah malam (mis. 20:00–02:00).' },
   { key: 'timezone', label: 'Zona waktu', type: 'select', options: [['Asia/Jakarta', 'WIB (Asia/Jakarta)'], ['Asia/Makassar', 'WITA (Asia/Makassar)'], ['Asia/Jayapura', 'WIT (Asia/Jayapura)'], ['UTC', 'UTC']] },
   { key: 'max_chars', label: 'Panjang maksimal komentar (karakter)', type: 'number', help: 'Threads membatasi 500 karakter' },
   { key: 'delay_min_seconds', label: 'Jeda antar komentar minimal (detik)', type: 'number' },

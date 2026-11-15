@@ -113,9 +113,27 @@ CREATE TABLE IF NOT EXISTS logs (
 );
 `);
 
+// ---------- migrasi kolom (untuk database versi lama) ----------
+function ensureColumn(table, column, definition) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+  if (!cols.includes(column)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+// login otomatis (username + password disimpan terenkripsi)
+ensureColumn('accounts', 'login_username', "TEXT DEFAULT ''");
+ensureColumn('accounts', 'login_password_enc', "TEXT DEFAULT ''");
+ensureColumn('accounts', 'totp_secret_enc', "TEXT DEFAULT ''");
+ensureColumn('accounts', 'login_engine', "TEXT DEFAULT 'lightpanda'");
+ensureColumn('accounts', 'auto_login', 'INTEGER DEFAULT 1');
+ensureColumn('accounts', 'last_login_attempt', 'INTEGER DEFAULT 0');
+ensureColumn('accounts', 'login_paused', 'INTEGER DEFAULT 0');
+// jam aktif untuk balas komentar ('' = ikuti default global)
+ensureColumn('accounts', 'reply_active_hours', "TEXT DEFAULT ''");
+
 // ---------- settings ----------
 const DEFAULT_SETTINGS = {
   timezone: 'Asia/Jakarta',
+  active_start: '06:00',      // jam aktif default (dipakai trigger/akun yang memilih "ikuti default")
+  active_end: '22:00',
   paused: false,              // tombol darurat: hentikan semua aksi
   delay_min_seconds: 25,      // jeda antar komentar dalam satu putaran
   delay_max_seconds: 70,

@@ -103,8 +103,8 @@ td .sub { color: var(--muted); font-size: 12.5px; }
 .form .section { grid-column: 1 / -1; font-weight: 600; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--border); }
 .form .section:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
 @media (max-width: 640px) { .form { grid-template-columns: 1fr; } }
-label.field { display: flex; flex-direction: column; gap: 4px; font-weight: 500; }
-label.field .help { font-weight: 400; color: var(--muted); font-size: 12.5px; }
+.field { display: flex; flex-direction: column; gap: 4px; font-weight: 500; }
+.field .help { font-weight: 400; color: var(--muted); font-size: 12.5px; }
 label.check { display: flex; gap: 8px; align-items: flex-start; font-weight: 500; }
 label.check input { margin-top: 4px; }
 label.check .help { display: block; font-weight: 400; color: var(--muted); font-size: 12.5px; }
@@ -141,3 +141,6 @@ dialog footer:empty { display: none; }
 .callout.warn { background: var(--warn-bg); color: var(--warn); }
 .tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
 .tabs button.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+
+.ah-range { display: flex; gap: 10px; flex-wrap: wrap; }
+.ah-range label { display: flex; flex-direction: column; gap: 2px; font-weight: 400; color: var(--muted); font-size: 12.5px; flex: 1; min-width: 120px; }

@@ -14,6 +14,11 @@ import { runTrigger, runReplyJob, collectCandidates, runningJobs } from './engin
 import { startScheduler } from './scheduler.js';
 import { verifyAccount, browser as browserPoster } from './posters/index.js';
 import { parseExpr } from './filters.js';
+import { encrypt, totp } from './secrets.js';
+
+// Jangan biarkan satu error tak tertangani mematikan seluruh aplikasi (penjadwal harus tetap jalan).
+process.on('unhandledRejection', (e) => log('error', 'process', `Unhandled: ${e?.stack || e}`.slice(0, 1000)));
+process.on('uncaughtException', (e) => log('error', 'process', `Uncaught: ${e?.stack || e}`.slice(0, 1000)));
 
 const app = express();
 app.disable('x-powered-by');
@@ -94,6 +99,10 @@ function publicAccount(a) {
     ...a,
     access_token: undefined,
     cookies: undefined,
+    login_password_enc: undefined,
+    totp_secret_enc: undefined,
+    has_login_password: Boolean(a.login_password_enc),
+    has_totp: Boolean(a.totp_secret_enc),
     token_masked: mask(a.access_token),
     has_token: Boolean(a.access_token),
     cookie_info: browserPoster.cookieSummary(a.cookies),
@@ -157,10 +166,27 @@ function setDefaultProvider(id) {
 }
 
 // ---------- accounts ----------
+/** Password & kunci 2FA dienkripsi sebelum disimpan; tidak pernah dikirim balik ke browser. */
+function loginSecretsPatch(raw, out) {
+  if (raw.clear_login_password) out.login_password_enc = '';
+  else if (raw.login_password) out.login_password_enc = encrypt(raw.login_password);
+  if (raw.clear_totp_secret) out.totp_secret_enc = '';
+  else if (raw.totp_secret) {
+    const secret = String(raw.totp_secret).replace(/\s/g, '');
+    totp(secret); // validasi format base32
+    out.totp_secret_enc = encrypt(secret);
+  }
+  if (out.login_username !== undefined) out.login_username = String(out.login_username).replace(/^@/, '').trim();
+  if (raw.login_password || raw.totp_secret || raw.login_username) out.login_paused = 0;
+  return out;
+}
+
 app.get('/api/accounts', wrap(() => list('accounts').map(publicAccount)));
 app.post('/api/accounts', wrap((req) => {
   const body = { ...req.body, username: String(req.body.username || '').replace(/^@/, '').trim() };
   if (body.cookies) browserPoster.parseCookies(body.cookies); // validasi format
+  loginSecretsPatch(req.body, body);
+  if (!body.username && body.login_username && !body.login_username.includes('@')) body.username = body.login_username;
   return publicAccount(insert('accounts', body));
 }));
 app.put('/api/accounts/:id', wrap((req) => {
@@ -169,7 +195,19 @@ app.put('/api/accounts/:id', wrap((req) => {
   if (body.username !== undefined) body.username = String(body.username).replace(/^@/, '').trim();
   if (body.cookies) browserPoster.parseCookies(body.cookies);
   if (body.access_token) body.token_refreshed_at = 0;
+  loginSecretsPatch(req.body, body);
   return publicAccount(update('accounts', idOf(req), body));
+}));
+/** Login sekarang dengan username + password tersimpan (opsional: kode 2FA). */
+app.post('/api/accounts/:id/login', wrap(async (req) => {
+  const a = mustGet('accounts', idOf(req));
+  if (a.method !== 'browser') throw new Error('Login dengan password hanya untuk metode "Browser"');
+  return browserPoster.loginWithPassword(a, { code: req.body?.code });
+}));
+app.post('/api/accounts/:id/login/2fa', wrap(async (req) => {
+  const a = mustGet('accounts', idOf(req));
+  if (!req.body?.code) throw new Error('Kode 2FA kosong');
+  return browserPoster.submitPending2fa(a, req.body.code);
 }));
 app.delete('/api/accounts/:id', wrap((req) => { remove('accounts', idOf(req)); }));
 app.post('/api/accounts/:id/verify', wrap(async (req) => {

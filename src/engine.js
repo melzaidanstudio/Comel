@@ -178,7 +178,7 @@ export async function runTrigger(triggerId, opts = {}) {
           failed++;
           recordAction({ ...base, reply_text: text, status: 'failed', error: e.message });
           log('error', src, `Gagal kirim ke ${post.url}: ${e.message}`);
-          if (/Cookie|token|OAuth|session|190/i.test(e.message)) {
+          if (/Cookie|token|OAuth|session|sesi|Login gagal|190/i.test(e.message)) {
             update('accounts', account.id, { status_note: `ERROR: ${e.message.slice(0, 200)}` });
             break;
           }
@@ -310,7 +310,7 @@ export async function runReplyJob(accountId, opts = {}) {
           failed++;
           recordAction({ ...base, reply_text: text, status: 'failed', error: e.message });
           log('error', src, `Gagal balas @${r.username}: ${e.message}`);
-          if (/Cookie|token|OAuth|session/i.test(e.message)) break;
+          if (/Cookie|token|OAuth|session|sesi|Login gagal/i.test(e.message)) break;
         }
       }
       return finish(`terkirim ${sent}${dry ? `, dry-run ${dry}` : ''}, skip ${skipped}, gagal ${failed}`);
