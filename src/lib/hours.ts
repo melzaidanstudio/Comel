@@ -1,6 +1,6 @@
 import type { AppSettings } from './types';
 
-export function localMinutes(timezone: string): number {
+function localMinutes(timezone: string): number {
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: timezone || 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
   }).formatToParts(new Date());

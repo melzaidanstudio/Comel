@@ -2,7 +2,7 @@ import { db } from './db';
 import { settings } from './db/schema';
 import type { AppSettings } from './types';
 
-export const DEFAULT_SETTINGS: AppSettings = {
+const DEFAULT_SETTINGS: AppSettings = {
   timezone: 'Asia/Jakarta',
   activeStart: '06:00', // jam aktif default
   activeEnd: '22:00',

@@ -47,7 +47,7 @@ function runLightpanda(url: string, { cookieFile, timeoutMs = 90_000 }: ScrapeOp
 }
 
 /** Ambil HTML lewat Lightpanda, retry sekali kalau kosong. */
-export async function fetchHtml(url: string, opts: ScrapeOpts = {}): Promise<string> {
+async function fetchHtml(url: string, opts: ScrapeOpts = {}): Promise<string> {
   return withSlot(async () => {
     let lastErr: unknown;
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -90,7 +90,7 @@ function postTag(t: Raw): PostTag | null {
   return { id: String(h.id || ''), name, display: h.display_name || name, community: Boolean(h.is_community || h.community_favicon_url) };
 }
 
-export function normalizePost(o: Raw): Post {
+function normalizePost(o: Raw): Post {
   const t: Raw = o.text_post_app_info || {};
   const username: string = o.user?.username || '';
   return {
@@ -115,7 +115,7 @@ export function normalizePost(o: Raw): Post {
   };
 }
 
-export function parsePosts(html: string): Post[] {
+function parsePosts(html: string): Post[] {
   const re = /<script type="application\/json"[^>]*>([\s\S]*?)<\/script>/g;
   const posts = new Map<string, Post>();
   const walk = (o: unknown, depth = 0) => {

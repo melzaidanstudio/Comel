@@ -13,13 +13,13 @@ const tone = {
   info: 'bg-sky-500/10 text-sky-700 dark:text-sky-400 border-transparent',
   muted: 'bg-muted text-muted-foreground border-transparent',
 };
-export type Tone = keyof typeof tone;
+type Tone = keyof typeof tone;
 
 export function Pill({ t = 'muted', children, className }: { t?: Tone; children: React.ReactNode; className?: string }) {
   return <Badge variant="outline" className={cn('h-auto whitespace-normal text-left font-normal', tone[t], className)}>{children}</Badge>;
 }
 
-export function StatusPill({ status }: { status: string }) {
+function StatusPill({ status }: { status: string }) {
   const map: Record<string, [Tone, string]> = { sent: ['ok', 'terkirim'], failed: ['err', 'gagal'], dry_run: ['info', 'dry-run'], skipped: ['muted', 'skip'] };
   const [t, label] = map[status] || ['muted', status];
   return <Pill t={t}>{label}</Pill>;

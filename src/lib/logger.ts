@@ -2,7 +2,7 @@ import { lt, sql } from 'drizzle-orm';
 import { db } from './db';
 import { logs } from './db/schema';
 
-export type Level = 'info' | 'warn' | 'error';
+type Level = 'info' | 'warn' | 'error';
 
 export async function log(level: Level, source: string, message: unknown) {
   const msg = typeof message === 'string' ? message : JSON.stringify(message);

@@ -11,4 +11,3 @@ export const pool = g.__comelPool ?? new Pool({
 g.__comelPool = pool; // hindari banyak pool saat hot-reload
 
 export const db = drizzle({ client: pool, schema, casing: 'snake_case' });
-export { schema };

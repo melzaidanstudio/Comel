@@ -30,6 +30,8 @@ export function route<C = Ctx>(
       }
       const status = e instanceof HttpError ? e.status : 400;
       const message = e instanceof Error ? e.message : String(e);
+      // error tak terduga juga dicatat di log server supaya bisa dilacak
+      if (!(e instanceof HttpError)) console.error(`[api] ${req.method} ${new URL(req.url).pathname}:`, e);
       return Response.json({ error: message }, { status });
     }
   };

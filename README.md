@@ -60,10 +60,12 @@ cd comel
 cp .env.example .env
 
 # 3. Isi rahasia & domain otomatis (domain gratis sslip.io dari IP VPS)
+EMAIL=email-anda@contoh.com          # ← ganti dengan email Anda (jadi akun admin)
 IP=$(curl -s4 ifconfig.me | tr . -)
 sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 16)/; \
 s/^BETTER_AUTH_SECRET=.*/BETTER_AUTH_SECRET=$(openssl rand -hex 32)/; \
 s/^SECRET_KEY=.*/SECRET_KEY=$(openssl rand -hex 32)/; \
+s/^ADMIN_EMAIL=.*/ADMIN_EMAIL=$EMAIL/; \
 s/^DOMAIN=.*/DOMAIN=comel.$IP.sslip.io/; \
 s#^BETTER_AUTH_URL=.*#BETTER_AUTH_URL=https://comel.$IP.sslip.io#" .env
 cat .env
@@ -74,7 +76,7 @@ docker compose --profile https up -d --build
 docker compose logs -f web worker
 ```
 
-Buka `https://comel.<ip-dengan-minus>.sslip.io` di browser HP → **buat akun admin** (akun pertama jadi admin, pendaftaran lalu ditutup).
+Lalu buka `https://comel.<ip-dengan-minus>.sslip.io` di browser HP → **buat akun admin** dengan email yang sama (hanya `ADMIN_EMAIL` yang diizinkan; setelah admin dibuat, pendaftaran ditutup).
 
 > Hostinger: bila firewall di hPanel (VPS → Security → Firewall) aktif, tambahkan izin port 80 & 443.
 > Simpan `.env` baik-baik — `SECRET_KEY` mengenkripsi password akun Threads; bila berubah, password tersimpan harus diisi ulang.

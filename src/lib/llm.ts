@@ -105,7 +105,7 @@ function fmtAge(sec: number) {
   return `${Math.round(h / 24)} hari`;
 }
 
-export type GenerateInput = {
+type GenerateInput = {
   provider: Provider;
   persona: { soul: string; memory: string };
   kind: 'comment' | 'reply';

@@ -29,9 +29,14 @@ export const auth = betterAuth({
     user: {
       create: {
         // Aplikasi pribadi: hanya akun pertama (admin) yang boleh dibuat.
-        before: async () => {
+        // ADMIN_EMAIL (opsional) mengunci email admin supaya orang lain tidak bisa mendaftar duluan.
+        before: async (u) => {
           const [{ n }] = await db.select({ n: count() }).from(user);
           if (n > 0) throw new APIError('FORBIDDEN', { message: 'Pendaftaran ditutup: akun admin sudah ada.' });
+          const allowed = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+          if (allowed && u.email.toLowerCase() !== allowed) {
+            throw new APIError('FORBIDDEN', { message: 'Email ini tidak diizinkan menjadi admin (cek ADMIN_EMAIL).' });
+          }
         },
       },
     },

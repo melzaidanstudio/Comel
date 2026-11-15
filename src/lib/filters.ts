@@ -11,7 +11,7 @@ export type Ast =
   | { op: 'AND' | 'OR'; a: Ast; b: Ast }
   | { op: 'NOT'; a: Ast };
 
-export function normalizeText(s: string | null | undefined): string {
+function normalizeText(s: string | null | undefined): string {
   return String(s || '').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ');
 }
 
@@ -124,7 +124,7 @@ function splitList(s: string | null | undefined): string[] {
 }
 
 /** Bagian trigger yang dipakai untuk menyaring postingan. */
-export type PostFilter = Partial<{
+type PostFilter = Partial<{
   includeReplies: boolean;
   maxAgeHours: number;
   minAgeMinutes: number;

@@ -22,7 +22,8 @@ FROM base AS build
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
-RUN npm run build
+# cache build tidak perlu ikut ke image runtime
+RUN npm run build && rm -rf .next/cache
 
 # ---------- runtime (web, worker, migrate memakai image yang sama) ----------
 FROM base AS runner
@@ -35,7 +36,6 @@ RUN npm ci --omit=dev --no-audit --no-fund \
  && npx playwright-core install --with-deps chromium \
  && rm -rf /var/lib/apt/lists/* /root/.npm
 COPY --from=build /app/.next ./.next
-COPY --from=build /app/public ./public
 COPY next.config.ts tsconfig.json drizzle.config.ts ./
 COPY drizzle ./drizzle
 COPY src ./src

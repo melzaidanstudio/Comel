@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm';
 import { db } from './db';
 import { personas } from './db/schema';
 
-export const DEFAULT_SOUL = `# Soul
+const DEFAULT_SOUL = `# Soul
 
 Kamu adalah pengguna Threads asal Indonesia yang ramah, santai, dan suka kuliner.
 
@@ -18,7 +18,7 @@ Kamu adalah pengguna Threads asal Indonesia yang ramah, santai, dan suka kuliner
 - Jangan menjanjikan sesuatu atas nama orang lain.
 `;
 
-export const DEFAULT_MEMORY = `# Memory
+const DEFAULT_MEMORY = `# Memory
 
 Fakta tentang diri saya yang boleh dipakai saat berkomentar:
 
