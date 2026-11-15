@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Comel — Threads Auto Reply</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐼</text></svg>">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="login" class="login hidden">
+    <form id="loginForm" class="login-card">
+      <div class="brand big">🐼 Comel</div>
+      <p class="muted">Threads auto-commenter</p>
+      <input type="password" id="loginPassword" placeholder="Password dashboard" autocomplete="current-password" required>
+      <button class="btn primary" type="submit">Masuk</button>
+      <p id="loginError" class="error"></p>
+    </form>
+  </div>
+
+  <div id="app" class="layout hidden">
+    <aside class="sidebar">
+      <div class="brand">🐼 Comel</div>
+      <nav id="nav">
+        <a href="#dashboard" data-page="dashboard">Dasbor</a>
+        <a href="#triggers" data-page="triggers">Trigger</a>
+        <a href="#accounts" data-page="accounts">Akun Threads</a>
+        <a href="#providers" data-page="providers">AI Provider</a>
+        <a href="#persona" data-page="persona">Soul &amp; Memory</a>
+        <a href="#history" data-page="history">Riwayat</a>
+        <a href="#settings" data-page="settings">Pengaturan</a>
+      </nav>
+      <div class="sidebar-foot">
+        <button id="pauseBtn" class="btn small">Pause semua</button>
+        <button id="logoutBtn" class="btn small ghost">Keluar</button>
+      </div>
+    </aside>
+    <main id="main" class="main"></main>
+  </div>
+
+  <dialog id="modal">
+    <form method="dialog" id="modalForm">
+      <header><h3 id="modalTitle"></h3><button class="icon-btn" value="cancel" formnovalidate aria-label="Tutup">✕</button></header>
+      <div id="modalBody" class="modal-body"></div>
+      <footer id="modalFoot"></footer>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast"></div>
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

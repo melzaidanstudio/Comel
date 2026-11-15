@@ -1,0 +1,16 @@
+services:
+  comel:
+    build: .
+    container_name: comel
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      # Default hanya bisa diakses dari VPS itu sendiri (aman). Akses lewat SSH tunnel
+      # atau reverse proxy HTTPS. Ganti jadi "3000:3000" bila ingin dibuka langsung.
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./data:/app/data
+    extra_hosts:
+      # supaya bisa memanggil 9router yang jalan di VPS yang sama: http://host.docker.internal:20128/v1
+      - "host.docker.internal:host-gateway"
+    shm_size: "512mb"
