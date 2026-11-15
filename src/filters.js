@@ -103,6 +103,22 @@ export function positiveTerms(ast, neg = false, out = []) {
   return out;
 }
 
+/** "Kuliner Bogor", "#kulinerbogor", "kuliner-bogor" → "kulinerbogor" */
+export function normTag(s) {
+  return String(s || '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^\p{L}\p{N}]/gu, '');
+}
+
+export function parseTagList(s) {
+  return String(s || '').split(/[,\n]/).map((x) => x.trim().replace(/^#/, '')).filter(Boolean);
+}
+
+/** Apakah tag postingan cocok dengan salah satu tag di daftar. mode: exact | contains */
+export function tagMatches(postTag, wanted, mode = 'exact') {
+  if (!postTag) return false;
+  const names = [normTag(postTag.name), normTag(postTag.display)].filter(Boolean);
+  return wanted.map(normTag).filter(Boolean).some((w) => names.some((n) => (mode === 'contains' ? n.includes(w) : n === w)));
+}
+
 function splitList(s) {
   return String(s || '').split(/[,\n]/).map((x) => x.trim().replace(/^@/, '').toLowerCase()).filter(Boolean);
 }
@@ -135,6 +151,15 @@ export function checkPost(post, trigger, { ast, now = Math.floor(Date.now() / 10
     }
   }
 
+  const wantTags = parseTagList(trigger.topic_tags);
+  if (wantTags.length && !tagMatches(post.tag, wantTags, trigger.tag_match)) {
+    return { ok: false, reason: post.tag ? `tag "${post.tag.name}" tidak cocok` : 'tanpa topic tag' };
+  }
+  const exTags = parseTagList(trigger.exclude_tags);
+  if (exTags.length && tagMatches(post.tag, exTags, trigger.tag_match)) {
+    return { ok: false, reason: `tag "${post.tag.name}" dihindari` };
+  }
+
   const exUsers = splitList(trigger.exclude_users);
   if (exUsers.includes(post.username.toLowerCase())) return { ok: false, reason: 'user dikecualikan' };
   const text = normalizeText(post.text);
@@ -142,7 +167,8 @@ export function checkPost(post, trigger, { ast, now = Math.floor(Date.now() / 10
   const hit = exWords.find((w) => text.includes(w));
   if (hit) return { ok: false, reason: `mengandung kata terlarang "${hit}"` };
 
-  if (ast && !evalExpr(ast, `${post.text} @${post.username}`)) return { ok: false, reason: 'tidak cocok kata kunci' };
+  const tagText = post.tag ? ` #${post.tag.name} #${post.tag.display}` : '';
+  if (ast && !evalExpr(ast, `${post.text} @${post.username}${tagText}`)) return { ok: false, reason: 'tidak cocok kata kunci' };
   return { ok: true };
 }
 

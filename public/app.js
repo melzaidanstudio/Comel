@@ -231,13 +231,17 @@ function bindTriggerButtons(root) {
   $$('[data-preview]', root).forEach((b) => { b.onclick = () => withBusy(b, () => previewTrigger(Number(b.dataset.preview))); });
 }
 
+function actionTag(a) {
+  try { const t = JSON.parse(a.metrics || '{}').tag; return t ? ` <span class="badge tag">#${esc(t)}</span>` : ''; } catch { return ''; }
+}
+
 function actionsTable(rows) {
   if (!rows.length) return '<div class="empty">Belum ada aktivitas</div>';
   return `<div class="table-wrap"><table><thead><tr><th>Waktu</th><th>Status</th><th>Target</th><th>Komentar kita</th></tr></thead><tbody>
   ${rows.map((a) => `<tr>
     <td>${ago(a.created_at)}<div class="sub">${esc(a.account_name || '')} · ${a.kind === 'reply' ? 'balas komentar' : esc(a.trigger_name || 'komentar')}</div></td>
     <td>${statusBadge(a.status)}</td>
-    <td><a href="${esc(a.target_url)}" target="_blank" rel="noopener">@${esc(a.target_user)}</a><div class="sub clip">${esc(a.target_text)}</div></td>
+    <td><a href="${esc(a.target_url)}" target="_blank" rel="noopener">@${esc(a.target_user)}</a>${actionTag(a)}<div class="sub clip">${esc(a.target_text)}</div></td>
     <td><div class="clip">${esc(a.reply_text || '')}</div>${a.error ? `<div class="sub" style="color:var(--err)">${esc(a.error)}${/screenshot: (\S+)\)/.test(a.error) ? ` <a href="/api/screenshots/${esc(a.error.match(/screenshot: (\S+)\)/)[1])}" target="_blank">lihat</a>` : ''}</div>` : ''}</td>
   </tr>`).join('')}</tbody></table></div>`;
 }
@@ -255,6 +259,11 @@ const TRIGGER_FIELDS = [
   { key: 'exclude_words', label: 'Kata yang dihindari', placeholder: 'giveaway, judi, slot', help: 'Dipisah koma' },
   { key: 'exclude_users', label: 'User yang dihindari', placeholder: '@akunpesaing, @spammer', help: 'Dipisah koma' },
   { key: 'include_replies', label: 'Ikutkan postingan yang berupa balasan (bukan utas utama)', type: 'checkbox', full: true },
+  { type: 'section', label: 'Topic tag' },
+  { key: 'topic_tags', label: 'Topic tag (wajib salah satu)', type: 'textarea', full: true, rows: 2, placeholder: 'Kuliner Bogor, Food Threads', help: 'Hanya postingan dengan topic tag ini yang dikomentari. Pisahkan dengan koma atau baris baru. Kosong = tanpa filter tag. Klik saran di bawah untuk menambah.' },
+  { key: 'tag_match', label: 'Cara mencocokkan tag', type: 'select', options: [['exact', 'Sama persis ("Kuliner Bogor" = "kulinerbogor")'], ['contains', 'Mengandung kata ("bogor" cocok dengan "Kuliner Bogor", "Bogor")']] },
+  { key: 'exclude_tags', label: 'Tag yang dihindari', placeholder: 'Politik, Giveaway', help: 'Dipisah koma' },
+  { key: 'tag_as_source', label: 'Cari juga lewat halaman topic tag (trigger by tag)', type: 'checkbox', default: 1, full: true, help: 'Membuka halaman tag di Threads untuk tiap tag di atas, selain kata pencarian. Kata pencarian boleh dikosongkan.' },
   { type: 'section', label: 'Filter viralitas (0 = tidak dipakai)' },
   { key: 'min_likes', label: 'Minimal suka', type: 'number', default: 100 },
   { key: 'min_replies', label: 'Minimal balasan/komentar', type: 'number', default: 50 },
@@ -311,8 +320,9 @@ function triggerCard(t) {
       <h3>${esc(t.name)} ${t.enabled ? '<span class="badge ok">aktif</span>' : '<span class="badge">nonaktif</span>'} ${t.dry_run ? '<span class="badge info">dry-run</span>' : ''}</h3>
       <div class="kv">
         <span>Akun: <b>${esc(accountName(t.account_id))}</b></span>
-        <span>Cari: <b>${esc(q.join(' · ') || '(dari ekspresi)')}</b></span>
+        <span>Cari: <b>${esc(q.join(' · ') || (t.topic_tags && t.tag_as_source ? '(halaman tag)' : '(dari ekspresi)'))}</b></span>
         ${t.match_expr ? `<span>Filter: <b class="mono">${esc(t.match_expr)}</b></span>` : ''}
+        ${t.topic_tags ? `<span>Tag: <b>${esc(t.topic_tags.split(/[,\n]/).map((x) => x.trim()).filter(Boolean).map((x) => `#${x.replace(/^#/, '')}`).join(' '))}</b>${t.tag_match === 'contains' ? ' (mengandung)' : ''}</span>` : ''}
         <span>Viral: <b>${metrics || 'tanpa syarat'}</b></span>
         <span>Umur: <b>${t.max_age_hours ? `≤ ${t.max_age_hours} jam` : 'bebas'}</b></span>
         <span>Jadwal: <b>${t.actions_per_run}× tiap ${t.interval_minutes} menit</b></span>
@@ -331,14 +341,34 @@ function triggerCard(t) {
   </div></div>`;
 }
 
+async function mountTagChips(body) {
+  const field = body.querySelector('[data-key="topic_tags"]');
+  if (!field) return;
+  const box = document.createElement('div');
+  box.className = 'chips';
+  box.innerHTML = '<span class="muted">Memuat saran tag…</span>';
+  field.appendChild(box);
+  let tags = [];
+  try { tags = await api('/tags?limit=40'); } catch { /* abaikan */ }
+  if (!tags.length) { box.innerHTML = '<span class="muted">Belum ada saran — tag terkumpul otomatis setiap kali Preview/trigger berjalan.</span>'; return; }
+  box.innerHTML = `<span class="muted">Tag yang pernah terlihat:</span> ${tags.map((t) => `<button type="button" class="chip" data-tag="${esc(t.name)}" title="terlihat ${t.seen_count}×">#${esc(t.name)}${t.is_community ? ' ★' : ''}</button>`).join('')}`;
+  box.querySelectorAll('[data-tag]').forEach((b) => { b.onclick = () => {
+    const ta = body.querySelector('[name="topic_tags"]');
+    const cur = ta.value.split(/[,\n]/).map((x) => x.trim()).filter(Boolean);
+    if (!cur.some((x) => x.toLowerCase() === b.dataset.tag.toLowerCase())) cur.push(b.dataset.tag);
+    ta.value = cur.join(', ');
+  }; });
+}
+
 function editTrigger(id, duplicate = false) {
-  const t = id ? { ...state.triggers.find((x) => x.id === id) } : { account_id: state.accounts[0]?.id };
+  const t = id ? { ...state.triggers.find((x) => x.id === id) } : { account_id: state.accounts[0]?.id, tag_as_source: 1 };
   if (t.queries) t.queries = JSON.parse(t.queries).join('\n');
   if (duplicate) t.name = `${t.name} (salinan)`;
   openForm({
     title: id && !duplicate ? `Edit trigger: ${t.name}` : 'Trigger baru',
     fields: TRIGGER_FIELDS,
     values: t,
+    onMount: mountTagChips,
     onSubmit: async (v) => {
       if (id && !duplicate) await api(`/triggers/${id}`, { method: 'PUT', body: v });
       else await api('/triggers', { method: 'POST', body: v });
@@ -355,12 +385,17 @@ async function previewTrigger(id) {
   const rows = r.posts.map((p, i) => `<tr>
     <td>${p.ok ? '<span class="badge ok">lolos</span>' : `<span class="badge">${esc(p.reason)}</span>`}</td>
     <td><a href="${esc(p.url)}" target="_blank" rel="noopener">@${esc(p.username)}</a><div class="sub">${ago(p.takenAt)}</div></td>
-    <td><div class="clip">${esc(p.text)}</div><div class="gen sub" id="gen-${i}"></div></td>
+    <td>${p.tag ? `<span class="badge tag">#${esc(p.tag.name)}</span> ` : ''}<div class="clip">${esc(p.text)}</div><div class="gen sub" id="gen-${i}"></div></td>
     <td class="mono">❤ ${num(p.likes)}<br>💬 ${num(p.replies)}<br>🔁 ${num(p.reposts)}<br>↗ ${num(p.shares)}</td>
     <td><button class="btn small" data-gen="${i}">Tes komentar</button></td>
   </tr>`).join('');
+  const tagCount = {};
+  for (const p of r.posts) if (p.tag) tagCount[p.tag.name] = (tagCount[p.tag.name] || 0) + 1;
+  const tagSummary = Object.entries(tagCount).sort((a, b) => b[1] - a[1]).slice(0, 12)
+    .map(([n, c]) => `<span class="badge tag">#${esc(n)} · ${c}</span>`).join(' ');
   openInfo(`Preview: ${t.name}`, `
     <p class="muted">Dicari: ${r.queries.map(esc).join(' · ')} — <b>${r.posts.length}</b> postingan, <b>${ok.length}</b> lolos filter. Tidak ada yang dikirim dari halaman ini.</p>
+    ${tagSummary ? `<p class="muted">Topic tag di hasil: ${tagSummary}</p>` : ''}
     ${r.errors.length ? `<div class="callout warn">${r.errors.map(esc).join('<br>')}</div>` : ''}
     <div class="table-wrap"><table><thead><tr><th>Status</th><th>Penulis</th><th>Teks</th><th>Metrik</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="5" class="empty">Tidak ada postingan</td></tr>'}</tbody></table></div>`);
   $$('[data-gen]').forEach((b) => { b.onclick = (ev) => { ev.preventDefault(); withBusy(b, async () => {

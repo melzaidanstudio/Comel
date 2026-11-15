@@ -3,7 +3,7 @@
 Aplikasi pribadi untuk:
 
 1. Mengatur **akun Threads** (via **API resmi**, atau **browser** dengan **username + password tersimpan** / cookie)
-2. Mengatur **trigger kata kunci** dengan **filter viralitas** (suka, balasan, repost, share, quote) dan **filter waktu**
+2. Mengatur **trigger kata kunci** atau **topic tag**, dengan **filter viralitas** (suka, balasan, repost, share, quote), **filter tag**, dan **filter waktu**
 3. **Scrape** Threads memakai **[Lightpanda](https://github.com/lightpanda-io/browser)** (tanpa login)
 4. Membuat **komentar** otomatis dengan AI di utas yang lolos filter
 5. **Membalas komentar** orang di postingan kamu / di komentar kamu
@@ -58,6 +58,27 @@ Buat trigger dengan isian:
 Klik **Preview** untuk melihat postingan mana yang lolos filter (tanpa mengirim apa pun) dan **Tes komentar** untuk melihat contoh komentar AI. Centang **Dry run** dulu untuk uji coba, lalu matikan bila sudah yakin.
 
 > ⚠️ 3 komentar tiap 15 menit = sampai **288 komentar/hari**. Batas harian akun (default **50**) akan menahan ini. Komentar AI dalam jumlah besar mudah dianggap spam oleh Meta dan berisiko akun dibatasi/diblokir. Mulailah pelan (mis. 1–2 per 30 menit, jam aktif 07:00–22:00) dan naikkan bertahap.
+
+### Trigger & filter berdasarkan topic tag
+
+Threads memungkinkan satu **topic tag** per postingan (mis. *Kuliner Bogor*, *Food Threads*). Di form trigger bagian **Topic tag**:
+
+| Field | Fungsi |
+|---|---|
+| Topic tag (wajib salah satu) | Hanya postingan ber-tag ini yang dikomentari, mis. `Kuliner Bogor, Food Threads` |
+| Cara mencocokkan | **Sama persis** (`Kuliner Bogor` = `kulinerbogor` = `#kuliner-bogor`) atau **Mengandung kata** (`bogor` cocok dengan *Kuliner Bogor*, *Bogor*, *Loker Bogor*) |
+| Tag yang dihindari | mis. `Loker Bogor, Politik` |
+| Cari juga lewat halaman topic tag | **Trigger by tag**: membuka halaman tag di Threads untuk tiap tag. Kata pencarian boleh dikosongkan |
+
+Tag yang pernah terlihat saat scrape muncul sebagai **saran** (klik untuk menambah; ★ = tag komunitas). Preview menampilkan tag tiap postingan dan ringkasan tag di hasil.
+Nama tag juga ikut dicocokkan oleh ekspresi kata kunci, jadi `"kuliner bogor"` cocok dengan postingan ber-tag *Kuliner Bogor* meskipun teksnya tidak menyebut kata itu.
+
+Contoh: komentar di postingan ber-tag *Kuliner Bogor* atau *Food Threads* yang menyebut Bogor, dengan like ≥ 100:
+- Topic tag: `Kuliner Bogor, Food Threads` (sama persis, cari lewat halaman tag ✓)
+- Ekspresi kata kunci: `bogor` (karena *Food Threads* adalah tag komunitas global)
+- Minimal suka: `100`
+
+> Catatan: tanpa login, halaman tag Threads menampilkan hasil pencarian nama tag (tag-nya bercampur), jadi Comel selalu menyaring ulang per tag. Dari ±20 postingan per halaman, biasanya hanya sebagian yang ber-tag sesuai — tambahkan beberapa tag/kata pencarian untuk hasil lebih banyak.
 
 ### Sintaks ekspresi kata kunci
 

@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { DATA_DIR } from './config.js';
+import { normTag } from './filters.js';
 
 export const db = new DatabaseSync(path.join(DATA_DIR, 'comel.db'));
 db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;');
@@ -128,6 +129,22 @@ ensureColumn('accounts', 'last_login_attempt', 'INTEGER DEFAULT 0');
 ensureColumn('accounts', 'login_paused', 'INTEGER DEFAULT 0');
 // jam aktif untuk balas komentar ('' = ikuti default global)
 ensureColumn('accounts', 'reply_active_hours', "TEXT DEFAULT ''");
+// filter & trigger berdasarkan topic tag
+ensureColumn('triggers', 'topic_tags', "TEXT DEFAULT ''");      // dipisah koma / baris
+ensureColumn('triggers', 'exclude_tags', "TEXT DEFAULT ''");
+ensureColumn('triggers', 'tag_match', "TEXT DEFAULT 'exact'");  // exact | contains
+ensureColumn('triggers', 'tag_as_source', 'INTEGER DEFAULT 1'); // cari juga lewat halaman tag
+
+// tag yang pernah terlihat saat scrape (untuk saran & tag_id)
+db.exec(`CREATE TABLE IF NOT EXISTS tags (
+  norm         TEXT PRIMARY KEY,
+  id           TEXT,
+  name         TEXT,
+  display_name TEXT,
+  is_community INTEGER DEFAULT 0,
+  seen_count   INTEGER DEFAULT 0,
+  last_seen    INTEGER DEFAULT (unixepoch())
+)`);
 
 // ---------- settings ----------
 const DEFAULT_SETTINGS = {
@@ -212,6 +229,33 @@ export function list(table, order = 'id ASC') {
 
 export function remove(table, id) {
   db.prepare(`DELETE FROM ${table} WHERE id = ?`).run(id);
+}
+
+// ---------- tags ----------
+export function recordTags(posts) {
+  const stmt = db.prepare(`INSERT INTO tags (norm, id, name, display_name, is_community, seen_count, last_seen)
+    VALUES (?, ?, ?, ?, ?, 1, unixepoch())
+    ON CONFLICT(norm) DO UPDATE SET id = COALESCE(NULLIF(excluded.id, ''), id), name = excluded.name,
+      display_name = excluded.display_name, seen_count = seen_count + 1, last_seen = unixepoch()`);
+  const seen = new Set();
+  for (const p of posts) {
+    if (!p.tag) continue;
+    const n = normTag(p.tag.name);
+    if (!n || seen.has(n)) continue;
+    seen.add(n);
+    stmt.run(n, p.tag.id, p.tag.name, p.tag.display, p.tag.community ? 1 : 0);
+  }
+}
+
+export function findTag(name) {
+  return db.prepare('SELECT * FROM tags WHERE norm = ?').get(normTag(name)) || null;
+}
+
+export function listTags(q = '', limit = 60) {
+  const n = normTag(q);
+  return n
+    ? db.prepare('SELECT * FROM tags WHERE norm LIKE ? ORDER BY seen_count DESC LIMIT ?').all(`%${n}%`, limit)
+    : db.prepare('SELECT * FROM tags ORDER BY seen_count DESC, last_seen DESC LIMIT ?').all(limit);
 }
 
 // ---------- logs ----------

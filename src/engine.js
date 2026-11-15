@@ -2,8 +2,9 @@ import {
   getById, getSettings, update, log, recordAction, hasActedOn, failedAttempts,
   recentlyCommentedAuthor, sentLast24h, recentReplyTexts, db,
 } from './db.js';
-import { searchPosts, fetchPostPage, fetchProfilePosts, fetchProfileReplies } from './scraper.js';
-import { parseExpr, checkPost, engagementScore, positiveTerms } from './filters.js';
+import { searchPosts, searchTag, fetchPostPage, fetchProfilePosts, fetchProfileReplies } from './scraper.js';
+import { parseExpr, checkPost, engagementScore, positiveTerms, parseTagList } from './filters.js';
+import { recordTags, findTag } from './db.js';
 import { generateReply, resolveProvider } from './llm.js';
 import { effectivePersona } from './persona.js';
 import { posterFor, api as apiPoster, browser as browserPoster } from './posters/index.js';
@@ -56,18 +57,28 @@ function scrapeOpts(account) {
 /** Kumpulkan & saring kandidat postingan untuk sebuah trigger. */
 export async function collectCandidates(trigger, account) {
   const ast = parseExpr(trigger.match_expr);
-  const queries = parseQueries(trigger, ast);
-  if (!queries.length) throw new Error('Trigger belum punya kata pencarian atau ekspresi kata kunci');
+  const tags = parseTagList(trigger.topic_tags);
+  const tagSources = trigger.tag_as_source ? tags.slice(0, 6) : [];
+  // kalau sudah ada sumber tag, query otomatis dari ekspresi tidak dipakai (hanya query yang ditulis manual)
+  const queries = tagSources.length ? parseQueries({ ...trigger, match_expr: '' }, null) : parseQueries(trigger, ast);
+  if (!queries.length && !tagSources.length) {
+    throw new Error('Trigger belum punya kata pencarian, ekspresi kata kunci, atau topic tag (dengan opsi "cari lewat halaman tag")');
+  }
 
   const opts = scrapeOpts(account);
   const seen = new Map();
   const errors = [];
-  for (const q of queries) {
+  const sources = [
+    ...tagSources.map((t) => ({ label: `#${t}`, run: () => searchTag(t, { ...opts, tagId: findTag(t)?.id }) })),
+    ...queries.map((q) => ({ label: q, run: () => searchPosts(q, opts) })),
+  ];
+  for (const src of sources) {
     try {
-      const posts = await searchPosts(q, opts);
-      for (const p of posts) if (!seen.has(p.code)) seen.set(p.code, { ...p, query: q });
+      const posts = await src.run();
+      recordTags(posts);
+      for (const p of posts) if (!seen.has(p.code)) seen.set(p.code, { ...p, query: src.label });
     } catch (e) {
-      errors.push(`"${q}": ${e.message}`);
+      errors.push(`"${src.label}": ${e.message}`);
     }
   }
   if (!seen.size && errors.length) throw new Error(`Scrape gagal — ${errors.join(' | ')}`);
@@ -87,11 +98,11 @@ export async function collectCandidates(trigger, account) {
     ? (a, b) => b.takenAt - a.takenAt
     : (a, b) => engagementScore(b) - engagementScore(a);
   evaluated.sort((a, b) => (b.ok - a.ok) || sorter(a, b));
-  return { queries, posts: evaluated, errors };
+  return { queries: sources.map((s) => s.label), posts: evaluated, errors };
 }
 
 function metricsJson(p) {
-  return JSON.stringify({ likes: p.likes, replies: p.replies, reposts: p.reposts, shares: p.shares, quotes: p.quotes, takenAt: p.takenAt });
+  return JSON.stringify({ likes: p.likes, replies: p.replies, reposts: p.reposts, shares: p.shares, quotes: p.quotes, takenAt: p.takenAt, tag: p.tag?.name || null });
 }
 
 /**

@@ -81,10 +81,19 @@ function postText(o) {
   return frags.map((f) => f.plaintext || f.mention_fragment?.mentioned_user?.username || f.link_fragment?.display_text || '').join('');
 }
 
+function postTag(t) {
+  const h = t.tag_header;
+  if (!h || typeof h !== 'object') return null;
+  const name = h.tag_cluster_name || h.display_name || '';
+  if (!name) return null;
+  return { id: String(h.id || ''), name, display: h.display_name || name, community: Boolean(h.is_community || h.community_favicon_url) };
+}
+
 export function normalizePost(o) {
   const t = o.text_post_app_info || {};
   const username = o.user?.username || '';
   return {
+    tag: postTag(t),
     code: o.code,
     pk: String(o.pk ?? '').trim(),
     fbid: String(o.fbid ?? '').trim(),
@@ -129,6 +138,14 @@ export function parsePosts(html) {
 }
 
 // ---------- API scraper ----------
+/** Halaman topic tag Threads. Tanpa login isinya ≈ pencarian nama tag (tag campuran) → tetap disaring per tag. */
+export async function searchTag(tagName, opts = {}) {
+  const params = new URLSearchParams({ q: tagName, serp_type: 'tags' });
+  if (opts.tagId) params.set('tag_id', opts.tagId);
+  const html = await fetchHtml(`${THREADS}/search?${params}`, opts);
+  return parsePosts(html);
+}
+
 export async function searchPosts(query, opts = {}) {
   const url = `${THREADS}/search?q=${encodeURIComponent(query)}&serp_type=default${opts.recent ? '&filter=recent' : ''}`;
   const html = await fetchHtml(url, opts);

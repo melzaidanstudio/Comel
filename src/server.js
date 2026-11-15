@@ -6,7 +6,7 @@ import {
   ROOT, PORT, HOST, SESSION_SECRET, ADMIN_PASSWORD, ADMIN_PASSWORD_FROM_ENV, SCREENSHOT_DIR, DATA_DIR,
 } from './config.js';
 import {
-  db, getSettings, saveSettings, insert, update, getById, list, remove, recentLogs, log,
+  db, getSettings, saveSettings, insert, update, getById, list, remove, recentLogs, log, listTags,
 } from './db.js';
 import { PROVIDER_PRESETS, chat, generateReply, resolveProvider } from './llm.js';
 import { readPersonaFile, writePersonaFile, effectivePersona } from './persona.js';
@@ -124,6 +124,7 @@ app.get('/api/me', wrap(() => ({ ok: true, version: JSON.parse(fs.readFileSync(p
 app.get('/api/settings', wrap(() => getSettings()));
 app.put('/api/settings', wrap((req) => saveSettings(req.body || {})));
 app.get('/api/presets', wrap(() => PROVIDER_PRESETS));
+app.get('/api/tags', wrap((req) => listTags(String(req.query.q || ''), Math.min(200, Number(req.query.limit) || 60))));
 
 app.get('/api/stats', wrap(() => {
   const q = (sql, ...p) => db.prepare(sql).get(...p).n;

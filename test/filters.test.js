@@ -32,3 +32,26 @@ test('filter viralitas & waktu', () => {
   assert.equal(checkPost({ ...post, isReply: true }, trig).ok, false);
   assert.equal(checkPost(post, { ...trig, exclude_words: 'mantap' }).ok, false);
 });
+
+import { tagMatches, normTag, parseTagList } from '../src/filters.js';
+
+test('topic tag: normalisasi & pencocokan', () => {
+  assert.equal(normTag('#Kuliner Bogor'), 'kulinerbogor');
+  assert.deepEqual(parseTagList('#Kuliner Bogor, Food Threads\nBogor'), ['Kuliner Bogor', 'Food Threads', 'Bogor']);
+  const tag = { name: 'Kuliner Bogor', display: 'kulinerbogor' };
+  assert.equal(tagMatches(tag, ['kulinerbogor']), true);
+  assert.equal(tagMatches(tag, ['bogor']), false);
+  assert.equal(tagMatches(tag, ['bogor'], 'contains'), true);
+  assert.equal(tagMatches(null, ['bogor'], 'contains'), false);
+});
+
+test('topic tag di checkPost', () => {
+  const base = { username: 'a', text: 'enak', likes: 1, replies: 0, reposts: 0, shares: 0, quotes: 0, takenAt: Math.floor(Date.now()/1000), isReply: false };
+  const t = { topic_tags: 'Kuliner Bogor, Food Threads', tag_match: 'exact' };
+  assert.equal(checkPost({ ...base, tag: { name: 'Food Threads', display: 'Food Threads' } }, t).ok, true);
+  assert.equal(checkPost({ ...base, tag: { name: 'Bogor', display: 'Bogor' } }, t).ok, false);
+  assert.equal(checkPost({ ...base, tag: null }, t).reason, 'tanpa topic tag');
+  assert.equal(checkPost({ ...base, tag: { name: 'Politik', display: 'politik' } }, { exclude_tags: 'politik' }).ok, false);
+  // tag ikut bisa dicari lewat ekspresi kata kunci
+  assert.equal(checkPost({ ...base, tag: { name: 'Kuliner Bogor', display: 'x' } }, {}, { ast: parseExpr('"kuliner bogor"') }).ok, true);
+});
