@@ -1,16 +1,11 @@
-FROM node:22-bookworm-slim
-
+# ---------- base: Node + Lightpanda ----------
+FROM node:22-bookworm-slim AS base
 ARG TARGETARCH
-ENV NODE_ENV=production \
-    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
-    DATA_DIR=/app/data \
-    PORT=3000
-
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl tini \
  && rm -rf /var/lib/apt/lists/*
-
-# Lightpanda (headless browser untuk scraping)
 RUN set -eux; \
     case "${TARGETARCH:-amd64}" in \
       amd64) LP=lightpanda-x86_64-linux ;; \
@@ -20,17 +15,31 @@ RUN set -eux; \
     curl -fsSL -o /usr/local/bin/lightpanda "https://github.com/lightpanda-io/browser/releases/download/nightly/${LP}"; \
     chmod +x /usr/local/bin/lightpanda; \
     lightpanda version
-
 WORKDIR /app
+
+# ---------- build Next.js ----------
+FROM base AS build
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY . .
+RUN npm run build
+
+# ---------- runtime (web, worker, migrate memakai image yang sama) ----------
+FROM base AS runner
+ENV NODE_ENV=production \
+    DATA_DIR=/app/data \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev --no-audit --no-fund \
  && npx playwright-core install --with-deps chromium \
  && rm -rf /var/lib/apt/lists/* /root/.npm
-
+COPY --from=build /app/.next ./.next
+COPY --from=build /app/public ./public
+COPY next.config.ts tsconfig.json drizzle.config.ts ./
+COPY drizzle ./drizzle
 COPY src ./src
-COPY public ./public
-
 VOLUME ["/app/data"]
 EXPOSE 3000
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["node", "--disable-warning=ExperimentalWarning", "src/server.js"]
+CMD ["npx", "next", "start"]

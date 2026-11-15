@@ -1,6 +1,6 @@
-# HTTPS otomatis (Let's Encrypt) untuk dashboard Comel.
-# DOMAIN diisi di .env, contoh tanpa beli domain: comel.203-0-113-5.sslip.io (pakai IP VPS kamu)
+# HTTPS otomatis (Let's Encrypt). DOMAIN di .env, contoh tanpa beli domain:
+# comel.203-0-113-5.sslip.io (pakai IP VPS kamu, titik → tanda minus)
 {$DOMAIN} {
 	encode gzip
-	reverse_proxy comel:3000
+	reverse_proxy web:3000
 }

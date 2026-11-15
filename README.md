@@ -2,83 +2,144 @@
 
 Aplikasi pribadi untuk:
 
-1. Mengatur **akun Threads** (via **API resmi**, atau **browser** dengan **username + password tersimpan** / cookie)
+1. Mengatur **akun Threads**: **API resmi**, atau **browser** dengan **username + password tersimpan** / cookie
 2. Mengatur **trigger kata kunci** atau **topic tag**, dengan **filter viralitas** (suka, balasan, repost, share, quote), **filter tag**, dan **filter waktu**
 3. **Scrape** Threads memakai **[Lightpanda](https://github.com/lightpanda-io/browser)** (tanpa login)
 4. Membuat **komentar** otomatis dengan AI di utas yang lolos filter
 5. **Membalas komentar** orang di postingan kamu / di komentar kamu
 6. Kepribadian & pengetahuan AI lewat **`soul.md`** dan **`memory.md`**
 7. AI provider bebas: **9router**, OpenRouter, OpenAI, Claude, Gemini, Groq, DeepSeek, Ollama, atau endpoint OpenAI-compatible lain
+8. **Jam aktif** (default 06:00–22:00), batas harian, jeda per penulis, dry-run, dan tombol **Pause semua**
 
-Semua diatur dari dashboard web berbahasa Indonesia yang dilindungi password.
+## Tech stack
+
+| Bagian | Teknologi |
+|---|---|
+| Web & API | **Next.js 16** (App Router, Route Handlers di `src/app/api`) |
+| UI | **Tailwind CSS v4** + **shadcn/ui** (Radix) |
+| Database | **PostgreSQL 16** + **Drizzle ORM** (migrasi di `drizzle/`) |
+| Auth dashboard | **better-auth** (email + password, akun admin tunggal) |
+| Penjadwal | Proses **worker** terpisah (`src/worker`), kunci per akun via Postgres advisory lock |
+| Scraping | Lightpanda (`lightpanda fetch`) |
+| Kirim komentar | Threads Graph API, atau Playwright (Chromium / Lightpanda CDP) |
 
 ---
 
 ## Cara kerja
 
 ```
- ┌────────────┐  tiap N menit   ┌──────────────┐  HTML + JSON   ┌──────────────┐
- │ Penjadwal  │ ──────────────▶ │  Lightpanda  │ ─────────────▶ │ Filter:      │
- │ (trigger)  │                 │  /search?q=  │                │ kata kunci,  │
- └────────────┘                 └──────────────┘                │ viral, waktu │
-                                                                └──────┬───────┘
-                                                                       ▼
+ ┌───────────┐ tiap N menit ┌────────────┐ HTML+JSON ┌──────────────────────┐
+ │  worker   │ ───────────▶ │ Lightpanda │ ────────▶ │ filter: kata kunci,  │
+ │(scheduler)│              │ search/tag │           │ tag, viral, waktu    │
+ └───────────┘              └────────────┘           └──────────┬───────────┘
+                                                                ▼
  ┌────────────────────┐   teks komentar   ┌──────────────────────────────────┐
- │ Kirim:             │ ◀──────────────── │ AI (soul.md + memory.md +        │
- │ • Threads API      │                   │ instruksi trigger + isi postingan)│
- │ • Browser + cookie │                   │ → boleh jawab SKIP bila tak cocok │
+ │ kirim:             │ ◀──────────────── │ AI (soul.md + memory.md +        │
+ │ • Threads API      │                   │ instruksi trigger + postingan)   │
+ │ • browser + sesi   │                   │ → boleh jawab SKIP bila tak cocok│
  └────────────────────┘                   └──────────────────────────────────┘
 ```
 
-- Scraping dilakukan **tanpa login** (Threads menampilkan hasil pencarian, profil, dan balasan secara publik), jadi akun kamu tidak dipakai untuk scrape.
-- Postingan yang sudah pernah dikomentari tidak akan dikomentari lagi. Ada juga **jeda per penulis** (default 24 jam) dan **batas harian per akun**.
-- **Jam aktif**: default **06:00–22:00** (WIB). Di luar jam itu trigger & balas komentar tidak berjalan. Default bisa diubah di **Pengaturan**, dan tiap trigger/akun bisa memilih *Ikuti default*, *Atur sendiri*, atau *24 jam*.
-- Tombol **Pause semua** di sidebar menghentikan semua aksi otomatis seketika.
+- Scraping **tanpa login** (pencarian, halaman tag, profil, dan balasan tampil publik), jadi akun tidak dipakai untuk scrape.
+- Postingan yang sudah diproses tidak dikomentari lagi; ada **jeda per penulis** (default 24 jam) dan **batas harian per akun** (default 50).
+- **Jam aktif** default **06:00–22:00** (diubah di Pengaturan); tiap trigger/akun bisa *Ikuti default*, *Atur sendiri*, atau *24 jam*.
+
+---
+
+## Instalasi di VPS (Docker) — mis. Hostinger VPS
+
+Butuh VPS Linux (x86_64/arm64), RAM ≥ 2 GB, Docker. Semua langkah bisa dari HP lewat **Browser terminal** di hPanel Hostinger (VPS → Kelola → Browser terminal) atau aplikasi SSH (Termius/JuiceSSH).
+
+```bash
+# 1. Docker (lewati bila OS "Ubuntu with Docker")
+curl -fsSL https://get.docker.com | sh
+
+# 2. Ambil kode
+git clone https://github.com/melzaidanstudio/comel.git
+cd comel
+cp .env.example .env
+
+# 3. Isi rahasia & domain otomatis (domain gratis sslip.io dari IP VPS)
+IP=$(curl -s4 ifconfig.me | tr . -)
+sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 16)/; \
+s/^BETTER_AUTH_SECRET=.*/BETTER_AUTH_SECRET=$(openssl rand -hex 32)/; \
+s/^SECRET_KEY=.*/SECRET_KEY=$(openssl rand -hex 32)/; \
+s/^DOMAIN=.*/DOMAIN=comel.$IP.sslip.io/; \
+s#^BETTER_AUTH_URL=.*#BETTER_AUTH_URL=https://comel.$IP.sslip.io#" .env
+cat .env
+
+# 4. Buka port & jalankan (build pertama ±5 menit)
+sudo ufw allow 80,443/tcp
+docker compose --profile https up -d --build
+docker compose logs -f web worker
+```
+
+Buka `https://comel.<ip-dengan-minus>.sslip.io` di browser HP → **buat akun admin** (akun pertama jadi admin, pendaftaran lalu ditutup).
+
+> Hostinger: bila firewall di hPanel (VPS → Security → Firewall) aktif, tambahkan izin port 80 & 443.
+> Simpan `.env` baik-baik — `SECRET_KEY` mengenkripsi password akun Threads; bila berubah, password tersimpan harus diisi ulang.
+
+| Service | Fungsi |
+|---|---|
+| `db` | PostgreSQL 16 (volume `pgdata`) |
+| `migrate` | Menjalankan migrasi Drizzle sekali saat start |
+| `web` | Dashboard + API (Next.js) di `127.0.0.1:3000` |
+| `worker` | Penjadwal trigger & balas komentar |
+| `caddy` | HTTPS otomatis (profil `https`) |
+
+Update: `git pull && docker compose --profile https up -d --build`
+
+Backup: `docker compose exec db pg_dump -U comel comel > backup.sql` dan folder `./data`.
+
+---
+
+## Pengembangan lokal
+
+```bash
+cp .env.example .env.local
+# isi: DATABASE_URL=postgres://user:pass@localhost:5432/comel dan BETTER_AUTH_URL=http://localhost:3000
+npm install
+npx playwright-core install chromium   # untuk metode browser
+npm run db:migrate
+npm run dev        # dashboard http://localhost:3000
+npm run worker     # penjadwal (terminal lain)
+```
+
+| Perintah | Fungsi |
+|---|---|
+| `npm run dev` / `build` / `start` | Next.js |
+| `npm run worker` | Penjadwal |
+| `npm run db:generate` | Buat migrasi setelah mengubah `src/lib/db/schema.ts` |
+| `npm run db:migrate` | Terapkan migrasi |
+| `npm run db:studio` | Drizzle Studio |
+| `npm test` / `npm run typecheck` / `npm run lint` | Tes & cek |
+
+---
+
+## Langkah setelah instalasi
+
+1. **AI Provider** → *Provider baru* → pilih preset (mis. 9router) → isi API key & model → **Tes**.
+2. **Soul & Memory** → tulis kepribadian (`soul.md`) dan fakta (`memory.md`).
+3. **Akun Threads** → tambah akun → **Login sekarang** / **Tes koneksi**.
+4. **Trigger** → buat trigger (Dry run ✓) → **Preview** → **Jalankan** → matikan Dry run → aktifkan.
+5. (Opsional) Di akun, aktifkan **Balas komentar otomatis**.
 
 ---
 
 ## Contoh use case
 
-> Komentar di tiap utas yang minimal like 100, komentar 50, share 50, yang berhubungan dengan Kuliner dan/atau Kota Bogor. Lakukan 3 kali tiap 15 menit.
-
-Buat trigger dengan isian:
+> Komentar di tiap utas yang minimal like 100, komentar 50, share 50, yang berhubungan dengan Kuliner dan/atau Kota Bogor. 3 kali tiap 15 menit.
 
 | Field | Isi |
 |---|---|
-| Kata pencarian | `kuliner bogor`<br>`makanan bogor`<br>`jajanan bogor` |
-| Ekspresi kata kunci | `kuliner OR bogor` (dan/atau) — atau `kuliner AND bogor` (harus keduanya) |
-| Minimal suka / balasan / share | `100` / `50` / `50` |
-| Logika syarat viralitas | Semua syarat harus terpenuhi (AND) |
-| Umur postingan maksimal | misal `72` jam (0 = bebas) |
+| Kata pencarian | `kuliner bogor`, `makanan bogor`, `jajanan bogor` (satu per baris) |
+| Ekspresi kata kunci | `kuliner OR bogor` (dan/atau) — atau `kuliner AND bogor` |
+| Topic tag (opsional) | `Kuliner Bogor` |
+| Minimal suka / balasan / share | `100` / `50` / `50`, logika **AND** |
 | Jam aktif | Ikuti default (06:00–22:00) |
-| Jumlah komentar per putaran | `3` |
-| Setiap (menit) | `15` |
-| Instruksi | "Komentari makanannya secara spesifik dan antusias. Jangan promosi." |
+| Jumlah per putaran / setiap | `3` / `15` menit |
 
-Klik **Preview** untuk melihat postingan mana yang lolos filter (tanpa mengirim apa pun) dan **Tes komentar** untuk melihat contoh komentar AI. Centang **Dry run** dulu untuk uji coba, lalu matikan bila sudah yakin.
-
-> ⚠️ 3 komentar tiap 15 menit = sampai **288 komentar/hari**. Batas harian akun (default **50**) akan menahan ini. Komentar AI dalam jumlah besar mudah dianggap spam oleh Meta dan berisiko akun dibatasi/diblokir. Mulailah pelan (mis. 1–2 per 30 menit, jam aktif 07:00–22:00) dan naikkan bertahap.
-
-### Trigger & filter berdasarkan topic tag
-
-Threads memungkinkan satu **topic tag** per postingan (mis. *Kuliner Bogor*, *Food Threads*). Di form trigger bagian **Topic tag**:
-
-| Field | Fungsi |
-|---|---|
-| Topic tag (wajib salah satu) | Hanya postingan ber-tag ini yang dikomentari, mis. `Kuliner Bogor, Food Threads` |
-| Cara mencocokkan | **Sama persis** (`Kuliner Bogor` = `kulinerbogor` = `#kuliner-bogor`) atau **Mengandung kata** (`bogor` cocok dengan *Kuliner Bogor*, *Bogor*, *Loker Bogor*) |
-| Tag yang dihindari | mis. `Loker Bogor, Politik` |
-| Cari juga lewat halaman topic tag | **Trigger by tag**: membuka halaman tag di Threads untuk tiap tag. Kata pencarian boleh dikosongkan |
-
-Tag yang pernah terlihat saat scrape muncul sebagai **saran** (klik untuk menambah; ★ = tag komunitas). Preview menampilkan tag tiap postingan dan ringkasan tag di hasil.
-Nama tag juga ikut dicocokkan oleh ekspresi kata kunci, jadi `"kuliner bogor"` cocok dengan postingan ber-tag *Kuliner Bogor* meskipun teksnya tidak menyebut kata itu.
-
-Contoh: komentar di postingan ber-tag *Kuliner Bogor* atau *Food Threads* yang menyebut Bogor, dengan like ≥ 100:
-- Topic tag: `Kuliner Bogor, Food Threads` (sama persis, cari lewat halaman tag ✓)
-- Ekspresi kata kunci: `bogor` (karena *Food Threads* adalah tag komunitas global)
-- Minimal suka: `100`
-
-> Catatan: tanpa login, halaman tag Threads menampilkan hasil pencarian nama tag (tag-nya bercampur), jadi Comel selalu menyaring ulang per tag. Dari ±20 postingan per halaman, biasanya hanya sebagian yang ber-tag sesuai — tambahkan beberapa tag/kata pencarian untuk hasil lebih banyak.
+> ⚠️ 3 komentar tiap 15 menit = sampai 288/hari; **batas harian akun** (default 50) menahan ini. Komentar AI massal mudah dianggap spam oleh Meta — mulai pelan dan naikkan bertahap.
 
 ### Sintaks ekspresi kata kunci
 
@@ -87,198 +148,65 @@ Contoh: komentar di postingan ber-tag *Kuliner Bogor* atau *Food Threads* yang m
 | `kuliner bogor` | keduanya harus ada (spasi = AND) |
 | `kuliner OR bogor` / `kuliner ATAU bogor` | salah satu |
 | `kuliner AND (bogor OR "kota hujan")` | kurung & frasa |
-| `kuliner -promo` / `kuliner NOT promo` / `kuliner BUKAN promo` | kecualikan kata |
+| `kuliner -promo` / `NOT promo` / `BUKAN promo` | kecualikan |
 
-Pencocokan tidak peka huruf besar/kecil. Kalau *Kata pencarian* dikosongkan, kata positif dari ekspresi dipakai sebagai kata pencarian.
+Tidak peka huruf besar/kecil; nama topic tag ikut dicocokkan.
 
----
+### Topic tag
 
-## Instalasi di VPS (Docker — disarankan)
+- **Topic tag (wajib salah satu)** — mis. `Kuliner Bogor, Food Threads`.
+- **Cara mencocokkan** — *Sama persis* (`Kuliner Bogor` = `kulinerbogor`) atau *Mengandung kata* (`bogor` cocok dengan *Kuliner Bogor*, *Loker Bogor*).
+- **Tag yang dihindari** — mis. `Loker Bogor, Politik`.
+- **Cari lewat halaman topic tag** (*trigger by tag*) — kata pencarian boleh kosong.
+- Tag yang pernah terlihat muncul sebagai saran (★ = tag komunitas).
 
-Butuh VPS Linux (x86_64 atau arm64), RAM ≥ 1 GB, Docker + Docker Compose.
-
-```bash
-git clone https://github.com/melzaidanstudio/comel.git
-cd comel
-cp .env.example .env
-nano .env                       # ganti ADMIN_PASSWORD
-docker compose up -d --build
-docker compose logs -f          # cek log
-```
-
-### Buka dari HP / browser (HTTPS otomatis, tanpa beli domain)
-
-1. Cek IP VPS: `curl -4 ifconfig.me` → mis. `203.0.113.5`
-2. Di `.env` isi: `DOMAIN=comel.203-0-113-5.sslip.io` (titik pada IP diganti tanda minus)
-3. Buka port 80 & 443 (mis. `sudo ufw allow 80,443/tcp`, dan di firewall panel penyedia VPS)
-4. Jalankan dengan profil https:
-   ```bash
-   docker compose --profile https up -d --build
-   ```
-5. Buka `https://comel.203-0-113-5.sslip.io` di browser HP → masuk dengan `ADMIN_PASSWORD`.
-
-Dari Android, perintah di atas bisa diketik lewat aplikasi SSH seperti **Termius** atau **JuiceSSH**.
-
-### Akses lokal saja (tanpa membuka port)
-
-Tanpa profil https, dashboard **hanya bisa diakses dari VPS itu sendiri**. Buka dari laptop dengan SSH tunnel:
-
-```bash
-ssh -L 3000:localhost:3000 user@ip-vps
-# lalu buka http://localhost:3000
-```
-
-Atau pasang reverse proxy HTTPS (Caddy/Nginx) ke `127.0.0.1:3000`. Contoh Caddy:
-
-```
-comel.domainkamu.com {
-    reverse_proxy 127.0.0.1:3000
-}
-```
-
-Data (database, soul.md, memory.md, cookie) tersimpan di folder `./data` — **backup folder ini**.
-
-Update aplikasi:
-
-```bash
-git pull && docker compose up -d --build
-```
-
-## Instalasi tanpa Docker
-
-```bash
-# Node.js 22.13+ wajib (memakai node:sqlite bawaan)
-curl -fsSL -o /usr/local/bin/lightpanda https://github.com/lightpanda-io/browser/releases/download/nightly/lightpanda-x86_64-linux
-chmod +x /usr/local/bin/lightpanda
-
-npm ci
-npx playwright-core install --with-deps chromium   # hanya perlu untuk metode "browser + cookie"
-ADMIN_PASSWORD=passwordkamu npm start
-```
-
-Agar jalan terus, pakai systemd (`/etc/systemd/system/comel.service`):
-
-```ini
-[Unit]
-Description=Comel
-After=network.target
-
-[Service]
-WorkingDirectory=/opt/comel
-Environment=ADMIN_PASSWORD=passwordkamu
-ExecStart=/usr/bin/node --disable-warning=ExperimentalWarning src/server.js
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
-
-```bash
-systemctl daemon-reload && systemctl enable --now comel
-```
+> Tanpa login, halaman tag Threads berisi pencarian nama tag (tag campuran), jadi Comel selalu menyaring ulang per tag.
 
 ---
 
-## Langkah setelah instalasi
+## Login akun Threads
 
-1. **AI Provider** → *+ Provider baru* → pilih preset (mis. 9router) → isi API key & model → **Tes**.
-2. **Soul & Memory** → tulis kepribadian di `soul.md` dan fakta di `memory.md`.
-3. **Akun Threads** → tambah akun (lihat dua metode di bawah) → **Tes koneksi**.
-4. **Trigger** → buat trigger → **Preview** → **Jalankan** (dengan Dry run) → matikan Dry run → aktifkan.
-5. (Opsional) Di akun, aktifkan **Balas komentar otomatis**.
+### A. API resmi (stabil, risiko rendah)
 
----
-
-## Login akun: dua metode
-
-### A. API resmi Threads (disarankan)
-
-Lebih stabil dan risiko banned lebih rendah. Setup sekali:
-
-1. Buka <https://developers.facebook.com/apps> → **Create app** → pilih use case **"Access the Threads API"**.
-2. Di pengaturan use case Threads, tambahkan izin:
-   - `threads_basic`, `threads_content_publish`, `threads_manage_replies`, `threads_read_replies`
-   - **`threads_keyword_search`** (atau `threads_manage_mentions`) — **wajib** agar bisa membalas postingan **orang lain**. Tanpa ini, API hanya mengizinkan membalas di utas milik sendiri.
-3. **App roles → Roles → Add people → Threads Tester** → masukkan username Threads kamu. Terima undangan di aplikasi Threads: *Pengaturan → Akun → Izin situs web → Undangan*.
-4. Buat token: di halaman use case Threads, gunakan **User Token Generator** (atau Graph API Explorer) untuk akun tester kamu → dapat *short-lived token*.
-5. Tukar ke **long-lived token** (berlaku 60 hari):
+1. <https://developers.facebook.com/apps> → **Create app** → use case **Access the Threads API**.
+2. Izin: `threads_basic`, `threads_content_publish`, `threads_manage_replies`, `threads_read_replies`, dan **`threads_keyword_search`** atau `threads_manage_mentions` (wajib untuk membalas postingan **orang lain**).
+3. **App roles → Roles → Threads Tester** → terima undangan di Threads (*Pengaturan → Akun → Izin situs web*).
+4. Buat token (User Token Generator) lalu tukar ke long-lived (60 hari):
    ```bash
    curl "https://graph.threads.net/access_token?grant_type=th_exchange_token&client_secret=APP_SECRET&access_token=SHORT_TOKEN"
    ```
-6. Tempel `access_token` hasilnya di form akun (metode **API resmi**) → **Tes koneksi**. Username & user ID terisi otomatis. Comel memperbarui token otomatis tiap minggu.
+5. Tempel di akun (metode **API resmi**) → **Tes koneksi**. Token diperbarui otomatis tiap minggu.
 
-Batas API dari Meta: ±250 postingan & ±1000 balasan per 24 jam per akun.
+> Untuk postingan hasil scrape, `fbid` dipakai sebagai `reply_to_id` (fallback `pk`). Belum teruji end-to-end; bila gagal, cek pesan error di **Riwayat**.
 
-> Catatan teknis: untuk postingan hasil scrape, Comel memakai field `fbid` dari halaman Threads sebagai `reply_to_id` (dengan fallback ke `pk`). Ini belum bisa diuji dari lingkungan pengembangan; bila balasan via API gagal dengan pesan ID tidak valid, laporkan pesan error-nya dari menu **Riwayat**.
+### B. Browser — username + password tersimpan
 
-### B. Browser (login dengan username + password, atau cookie)
+1. Akun → metode **Browser** → isi **username/email/no HP** dan **password** (terenkripsi AES-256-GCM dengan `SECRET_KEY`).
+2. (Opsional) **Kunci 2FA authenticator** → kode 2FA dibuat otomatis. 2FA SMS: kode diminta di dashboard (berlaku 5 menit).
+3. **Login sekarang** → Lightpanda membuka threads.com/login dan menyimpan sesi.
+4. Sesi habis → login ulang otomatis (maks 1×/30 menit). Password salah / checkpoint → login otomatis **dijeda** supaya akun tidak terkunci; setujui "Ini saya" di HP lalu *Login sekarang*.
 
-Meniru pengguna sungguhan di threads.com.
+Alternatif: tempel **cookie** (ekstensi Cookie-Editor → Export JSON).
 
-**Cara 1 — simpan data login (Lightpanda login sendiri):**
-
-1. Form akun → metode **Browser** → bagian *Login otomatis*: isi **username / email / no. HP** dan **password**.
-2. (Opsional) **Kunci 2FA authenticator** — kunci base32 yang muncul saat mengaktifkan 2FA dengan aplikasi authenticator (Google Authenticator, dll). Dengan ini kode 2FA dibuat otomatis.
-3. Simpan → klik **Login sekarang**. Lightpanda membuka threads.com/login, mengisi form, lalu menyimpan cookie sesi.
-4. Bila 2FA via **SMS/WhatsApp**, dashboard akan meminta kode (berlaku 5 menit).
-
-Setelah itu, bila sesi kedaluwarsa, Comel **login ulang otomatis** (maks 1× per 30 menit). Bila login gagal karena password salah atau Meta meminta verifikasi ("Ini saya?"), login otomatis **dijeda** supaya akun tidak terkunci — selesaikan verifikasi di HP lalu klik *Login sekarang*.
-
-Keamanan: password & kunci 2FA disimpan **terenkripsi AES-256-GCM** di database; kuncinya di `data/.secret_key` (atau env `SECRET_KEY`). Password tidak pernah dikirim balik ke browser. Jika `data/.secret_key` hilang, isi ulang password.
-
-**Cara 2 — tempel cookie:**
-
-1. Login ke <https://www.threads.com> di Chrome/Firefox.
-2. Pasang ekstensi **Cookie-Editor** → buka threads.com → **Export → JSON**.
-3. Tempel di kolom *Cookie* pada form akun. Bisa juga format header: `sessionid=...; csrftoken=...; ds_user_id=...`
-4. Isi **username** (tanpa @) → **Tes koneksi**.
-
-Browser yang dipakai bisa dipilih terpisah:
-- **Browser untuk login** — default **Lightpanda** (sudah diuji bisa mengirim form login Threads).
-- **Browser untuk kirim komentar** — default **Chromium** (paling andal untuk mengetik & klik); Lightpanda bisa dipilih tapi masih eksperimental untuk editor teks Threads.
-
-⚠️ Metode ini **melanggar Ketentuan Meta** tentang akses otomatis dan lebih rawan checkpoint/banned. Selector tombol bisa berubah sewaktu-waktu jika Meta mengubah tampilan; bila gagal, screenshot disimpan di `data/screenshots/` dan bisa dibuka dari menu **Riwayat**. Cookie diperbarui otomatis setelah tiap sesi; bila kedaluwarsa, ekspor ulang.
+⚠️ Metode browser melanggar Ketentuan Meta tentang akses otomatis dan lebih rawan checkpoint/banned. Bila tombol tidak ditemukan, screenshot disimpan dan bisa dibuka dari **Riwayat**.
 
 ---
 
-## AI Provider
+## AI Provider — 9router
 
-Semua provider berformat OpenAI `/chat/completions`, kecuali Anthropic (Messages API native).
-
-### 9router
-
-[9router](https://github.com/decolua/9router) adalah router AI lokal yang menyediakan endpoint OpenAI-compatible.
-
-```bash
-npm install -g 9router
-9router            # dashboard: http://localhost:20128/dashboard
-```
-
-Di Comel: preset **9router** → Base URL `http://localhost:20128/v1` → API key & nama model dari dashboard 9router.
-Jika Comel berjalan di **Docker** dan 9router di VPS yang sama, gunakan `http://host.docker.internal:20128/v1`.
-
----
+[9router](https://github.com/decolua/9router): `npm install -g 9router && 9router` → dashboard `http://localhost:20128/dashboard`.
+Di Comel: preset **9router**, Base URL `http://localhost:20128/v1` (dari Docker: `http://host.docker.internal:20128/v1`), API key & model dari dashboard 9router.
 
 ## soul.md & memory.md
 
-- **soul.md** — "siapa kamu": kepribadian, gaya bahasa, panjang komentar, hal yang tidak boleh dilakukan. Dipakai sebagai system prompt.
-- **memory.md** — fakta yang boleh dipakai AI: info diri/bisnis, produk, lokasi, harga, FAQ.
+- **soul.md** — kepribadian, gaya bahasa, batasan (system prompt).
+- **memory.md** — fakta: info diri/bisnis, produk, lokasi, harga, FAQ.
 
-Keduanya bisa di-override **per akun** (tombol *Persona* di kartu akun). File tersimpan di `data/persona/`.
-
-AI juga menerima beberapa komentar terakhirnya supaya tidak mengulang kalimat, dan boleh menjawab `SKIP` untuk postingan yang tidak relevan atau sensitif (duka, SARA, politik — bisa dimatikan di Pengaturan).
-
----
+Disimpan di database (tabel `personas`), bisa di-override per akun. AI menerima komentar terakhirnya agar tidak mengulang, dan boleh menjawab `SKIP`.
 
 ## Balas komentar otomatis
 
-Di form akun → **Balas komentar otomatis**:
-
-- **Postingan saya** — membalas komentar orang di utas milik akun.
-- **Komentar saya** — membalas orang yang menanggapi komentar yang dibuat Comel/akun kamu.
-- Interval cek, maksimal balasan per putaran, umur komentar maksimal, instruksi khusus, dan dry run.
-
-Metode API memakai endpoint resmi `/{media-id}/replies`; metode browser men-scrape profil publik kamu dengan Lightpanda.
+Per akun: *Postingan saya*, *Komentar saya*, atau keduanya; interval, maks per putaran, umur komentar, jam aktif, instruksi, dry-run.
 
 ---
 
@@ -286,30 +214,35 @@ Metode API memakai endpoint resmi `/{media-id}/replies`; metode browser men-scra
 
 ```
 src/
-  server.js        # Express: dashboard + REST API + auth
-  scheduler.js     # penjadwal trigger & balas komentar, refresh token
-  engine.js        # alur: scrape → filter → AI → kirim
-  scraper.js       # Lightpanda fetch + parsing JSON Threads
-  filters.js       # ekspresi kata kunci & filter viral/waktu
-  llm.js           # klien AI (OpenAI-compatible + Anthropic), preset provider
-  persona.js       # soul.md & memory.md
-  posters/api.js   # Threads API resmi
-  posters/browser.js # Playwright (Chromium / Lightpanda CDP) + cookie
-  db.js            # SQLite (node:sqlite)
-public/            # dashboard (HTML/CSS/JS tanpa build)
-data/              # database, persona, cookie, screenshot (jangan di-commit)
+  app/
+    (dashboard)/      # dasbor, triggers, accounts, providers, persona, history, settings
+    login/            # login & setup admin
+    api/              # route handlers (integrasi): auth, triggers, accounts, providers, ...
+  components/
+    ui/               # shadcn/ui
+    app/              # komponen aplikasi (shell, form, dialog)
+  lib/
+    db/               # schema Drizzle, koneksi, migrasi
+    auth.ts           # better-auth
+    engine.ts         # scrape → filter → AI → kirim
+    scheduler.ts      # penjadwal (dipakai worker)
+    scraper.ts        # Lightpanda
+    filters.ts        # ekspresi kata kunci, viral, tag, waktu
+    llm.ts            # klien AI + preset
+    posters/          # Threads API & browser (Playwright)
+  worker/index.ts     # proses penjadwal
+  proxy.ts            # cek sesi cepat (Next.js 16 proxy)
+drizzle/              # file migrasi SQL
 ```
-
-Tes: `npm test`
 
 ## Troubleshooting
 
 | Masalah | Solusi |
 |---|---|
-| `Lightpanda tidak ditemukan` | Install Lightpanda atau set `LIGHTPANDA_BIN` |
-| Preview 0 postingan | Coba kata pencarian lain; Lightpanda nightly kadang gagal — cek menu Log/Dasbor |
-| `Threads API 400 … reply_to_id` | Pastikan app punya izin `threads_keyword_search`/`threads_manage_mentions` |
-| `Sesi login tidak valid / kedaluwarsa` | Klik *Login sekarang* (bila password tersimpan) atau ekspor cookie lagi |
-| `Login gagal: password salah` / checkpoint | Perbaiki password / setujui login di HP, lalu *Login sekarang* (login otomatis dijeda sampai itu) |
+| Tidak bisa masuk dashboard | `BETTER_AUTH_URL` harus sama persis dengan alamat yang dibuka (https://…) |
+| `Lightpanda tidak ditemukan` | Image Docker sudah menyertakan; lokal: install lalu set `LIGHTPANDA_BIN` |
+| Preview 0 postingan | Coba kata/tag lain; lihat Log di Dasbor |
+| `Threads API … reply_to_id` | App butuh `threads_keyword_search`/`threads_manage_mentions` |
+| `Login gagal: password salah` / checkpoint | Perbaiki password / setujui di HP → *Login sekarang* |
 | `Tombol balas/Post tidak ditemukan` | Tampilan Threads berubah; lihat screenshot di Riwayat |
-| Lupa password dashboard | Lihat `data/.admin_password`, atau set `ADMIN_PASSWORD` di `.env` |
+| Lupa password admin | `docker compose exec db psql -U comel -c 'delete from "user";'` lalu buat admin baru di /login |

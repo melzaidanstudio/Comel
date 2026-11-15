@@ -1,26 +1,69 @@
+x-app: &app
+  build: .
+  image: comel:latest
+  env_file: .env
+  environment:
+    DATABASE_URL: postgres://comel:${POSTGRES_PASSWORD:-comel}@db:5432/comel
+    BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+  volumes:
+    - ./data:/app/data
+  extra_hosts:
+    # akses 9router di VPS yang sama: http://host.docker.internal:20128/v1
+    - "host.docker.internal:host-gateway"
+
 services:
-  comel:
-    build: .
-    container_name: comel
+  db:
+    image: postgres:16-alpine
     restart: unless-stopped
-    env_file: .env
-    ports:
-      # Hanya bisa diakses dari VPS itu sendiri. Untuk dibuka dari HP/laptop,
-      # jalankan dengan profil https (lihat README): docker compose --profile https up -d
-      - "127.0.0.1:3000:3000"
+    environment:
+      POSTGRES_USER: comel
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-comel}
+      POSTGRES_DB: comel
     volumes:
-      - ./data:/app/data
-    extra_hosts:
-      # supaya bisa memanggil 9router yang jalan di VPS yang sama: http://host.docker.internal:20128/v1
-      - "host.docker.internal:host-gateway"
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U comel -d comel"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # menjalankan migrasi database sekali setiap start
+  migrate:
+    <<: *app
+    command: ["npx", "tsx", "src/lib/db/migrate.ts"]
+    restart: "no"
+    depends_on:
+      db: { condition: service_healthy }
+
+  web:
+    <<: *app
+    restart: unless-stopped
+    command: ["npx", "next", "start"]
+    ports:
+      # hanya dari VPS sendiri; buka dari HP lewat profil https (Caddy)
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      migrate: { condition: service_completed_successfully }
     shm_size: "512mb"
 
-  # HTTPS otomatis untuk akses dari HP/browser. Butuh DOMAIN di .env dan port 80 & 443 terbuka.
+  # penjadwal trigger & balas komentar
+  worker:
+    <<: *app
+    restart: unless-stopped
+    command: ["npx", "tsx", "src/worker/index.ts"]
+    environment:
+      DATABASE_URL: postgres://comel:${POSTGRES_PASSWORD:-comel}@db:5432/comel
+      RUN_MIGRATIONS: "false"
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    shm_size: "512mb"
+
+  # HTTPS otomatis untuk akses dari HP/browser: docker compose --profile https up -d
   caddy:
     image: caddy:2
     profiles: ["https"]
     restart: unless-stopped
-    depends_on: [comel]
+    depends_on: [web]
     env_file: .env
     ports:
       - "80:80"
@@ -28,3 +71,6 @@ services:
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./data/caddy:/data
+
+volumes:
+  pgdata:
