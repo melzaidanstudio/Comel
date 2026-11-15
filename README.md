@@ -106,7 +106,22 @@ docker compose up -d --build
 docker compose logs -f          # cek log
 ```
 
-Dashboard berjalan di port 3000 dan **sengaja hanya bisa diakses dari VPS itu sendiri**. Buka dari laptop dengan SSH tunnel:
+### Buka dari HP / browser (HTTPS otomatis, tanpa beli domain)
+
+1. Cek IP VPS: `curl -4 ifconfig.me` → mis. `203.0.113.5`
+2. Di `.env` isi: `DOMAIN=comel.203-0-113-5.sslip.io` (titik pada IP diganti tanda minus)
+3. Buka port 80 & 443 (mis. `sudo ufw allow 80,443/tcp`, dan di firewall panel penyedia VPS)
+4. Jalankan dengan profil https:
+   ```bash
+   docker compose --profile https up -d --build
+   ```
+5. Buka `https://comel.203-0-113-5.sslip.io` di browser HP → masuk dengan `ADMIN_PASSWORD`.
+
+Dari Android, perintah di atas bisa diketik lewat aplikasi SSH seperti **Termius** atau **JuiceSSH**.
+
+### Akses lokal saja (tanpa membuka port)
+
+Tanpa profil https, dashboard **hanya bisa diakses dari VPS itu sendiri**. Buka dari laptop dengan SSH tunnel:
 
 ```bash
 ssh -L 3000:localhost:3000 user@ip-vps

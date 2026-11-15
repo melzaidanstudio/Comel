@@ -5,8 +5,8 @@ services:
     restart: unless-stopped
     env_file: .env
     ports:
-      # Default hanya bisa diakses dari VPS itu sendiri (aman). Akses lewat SSH tunnel
-      # atau reverse proxy HTTPS. Ganti jadi "3000:3000" bila ingin dibuka langsung.
+      # Hanya bisa diakses dari VPS itu sendiri. Untuk dibuka dari HP/laptop,
+      # jalankan dengan profil https (lihat README): docker compose --profile https up -d
       - "127.0.0.1:3000:3000"
     volumes:
       - ./data:/app/data
@@ -14,3 +14,17 @@ services:
       # supaya bisa memanggil 9router yang jalan di VPS yang sama: http://host.docker.internal:20128/v1
       - "host.docker.internal:host-gateway"
     shm_size: "512mb"
+
+  # HTTPS otomatis untuk akses dari HP/browser. Butuh DOMAIN di .env dan port 80 & 443 terbuka.
+  caddy:
+    image: caddy:2
+    profiles: ["https"]
+    restart: unless-stopped
+    depends_on: [comel]
+    env_file: .env
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./data/caddy:/data
