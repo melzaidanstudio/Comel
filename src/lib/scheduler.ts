@@ -1,7 +1,7 @@
 import { and, eq, isNull, lte, or, sql } from 'drizzle-orm';
 import { db } from './db';
 import { threadsAccounts, triggers } from './db/schema';
-import { updateAccount } from './accounts';
+import { syncAllAccounts, updateAccount } from './accounts';
 import { runReplyJob, runTrigger } from './engine';
 import { resolveActiveHours, withinActiveHours } from './hours';
 import { log } from './logger';
@@ -58,7 +58,20 @@ async function tick() {
   }
 }
 
+/** Status koneksi akun di Repliz bisa berubah (token kedaluwarsa, akun dihapus) → samakan tiap jam. */
+async function syncAccounts() {
+  try {
+    const r = await syncAllAccounts();
+    if (r.missing) await log('warn', 'scheduler', `${r.missing} akun tidak ditemukan di Repliz`);
+  } catch (e) {
+    // Repliz belum dikonfigurasi atau sedang gangguan → coba lagi nanti
+    if (!/belum terhubung/.test((e as Error).message)) await log('warn', 'scheduler', `Sinkron akun Repliz gagal: ${(e as Error).message}`);
+  }
+}
+
 export function startScheduler() {
+  setInterval(() => { void syncAccounts(); }, 3600_000);
+  setTimeout(() => { void syncAccounts(); }, 5000);
   setInterval(tick, TICK_MS);
   setTimeout(tick, 3000);
   void log('info', 'scheduler', 'Penjadwal berjalan');

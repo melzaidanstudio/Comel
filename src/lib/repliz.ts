@@ -209,6 +209,13 @@ export function replyComment(commentId: string, text: string) {
   return call<{ commentId: string }>('POST', `/public/comment/${encodeURIComponent(commentId)}`, { body: { text } });
 }
 
+export const getComment = (commentId: string) => call<ReplizQueueComment>('GET', `/public/comment/${encodeURIComponent(commentId)}`);
+
+/** Ubah status di Repliz saja (tidak mengirim apa pun ke Threads). */
+export function setCommentStatus(commentId: string, status: 'pending' | 'resolved' | 'ignored') {
+  return call<void>('PUT', `/public/comment/${encodeURIComponent(commentId)}/status`, { body: { status } });
+}
+
 // ---------- konversi ----------
 /** Objek konten Repliz → Post Comel. Metrik engagement tidak tersedia dari Repliz (0 sampai dicek). */
 export function contentToPost(c: ReplizContent): Post {

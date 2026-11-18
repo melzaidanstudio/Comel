@@ -178,7 +178,7 @@ Repliz adalah jembatan Comel ke Threads: akun Threads dihubungkan lewat login re
 - **Paket**: pencarian (Research), komentar ke postingan orang lain (Content), dan Keyword Watch lewat API butuh **Gold**. Paket lain mendapat error `402`.
 - **Kunci**: isi di *Pengaturan → Koneksi Repliz* (Secret Key disimpan terenkripsi dengan `SECRET_KEY`), atau lewat `.env`:
   `REPLIZ_ACCESS_KEY`, `REPLIZ_SECRET_KEY` (bila diisi, dashboard tidak bisa mengubahnya).
-- **Akun**: *Akun Threads → Tambah dari Repliz*. *Sinkron dari Repliz* memperbarui username, foto, dan status koneksi. Akun yang terputus harus di-*Reconnect* di dashboard Repliz.
+- **Akun**: *Akun Threads → Tambah dari Repliz*. Worker menyinkronkan username, foto, dan status koneksi tiap jam (atau klik *Sinkron dari Repliz*); akun yang terputus dilewati sampai di-reconnect. Akun yang terputus harus di-*Reconnect* di dashboard Repliz.
 - **Webhook**: URL `https://<domain-anda>/api/webhooks/repliz` + token dari Pengaturan (atau `REPLIZ_WEBHOOK_TOKEN`). Repliz mengirim token di header `x-token`. Event `comment` membuat worker langsung membalas komentar di akun itu; tanpa webhook, komentar dicek sesuai interval akun.
 
 > Mengomentari orang asing dalam jumlah besar tetap bisa dianggap spam oleh Threads. Mulai dengan Dry run dan batas kecil.
@@ -195,8 +195,11 @@ Di Comel: preset **9router**, Base URL `http://localhost:20128/v1` (dari Docker:
 
 Disimpan di database (tabel `personas`), bisa di-override per akun. AI menerima komentar terakhirnya agar tidak mengulang, dan boleh menjawab `SKIP`.
 
-## Balas komentar otomatis
+## Inbox & balas komentar
 
+**Inbox komentar** (menu samping) menampilkan komentar orang di postingan akun Anda dari Repliz (tab Pending / Selesai / Diabaikan). Untuk tiap komentar: **Saran AI** (pakai soul.md, memory.md, dan instruksi akun), edit, **Kirim**, atau **Abaikan**. Balasan manual tercatat di Riwayat dan dihitung ke batas akun.
+
+**Balas otomatis** — 
 Per akun: komentar orang di **postingan akun itu** diambil dari antrean komentar Repliz (`status=pending`) dan dibalas lewat Repliz. Atur interval, maks per putaran, umur komentar maksimal, jam aktif, instruksi, dan dry-run. Dengan webhook, komentar baru langsung diproses.
 
 ---

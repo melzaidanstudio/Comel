@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
-  Bot, Gauge, History, LogOut, Menu, Pause, Play, Settings, Sparkles, UserRound, Zap,
+  Bot, Gauge, History, Inbox, LogOut, Menu, Pause, Play, Settings, Sparkles, UserRound, Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ import type { AppSettings } from '@/lib/types';
 const NAV = [
   { href: '/', label: 'Dasbor', icon: Gauge },
   { href: '/triggers', label: 'Trigger', icon: Zap },
+  { href: '/inbox', label: 'Inbox komentar', icon: Inbox },
   { href: '/accounts', label: 'Akun Threads', icon: UserRound },
   { href: '/providers', label: 'AI Provider', icon: Bot },
   { href: '/persona', label: 'Soul & Memory', icon: Sparkles },

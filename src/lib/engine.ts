@@ -21,6 +21,7 @@ import { effectivePersona } from './persona';
 import {
   contentToPost, createComment, listComments, replyComment, ReplizError, searchThreads, type ReplizQueueComment,
 } from './repliz';
+import type { Provider } from './db/schema';
 import { fetchPostPage } from './scraper';
 import { getSettings } from './settings';
 import { recordTags } from './tags';
@@ -164,6 +165,7 @@ export async function runTrigger(triggerId: number, opts: { manual?: boolean } =
     if (settings.paused && !opts.manual) return finishTrigger(t.id, 'dilewati: aplikasi sedang di-pause');
     if (!a.enabled) return finishTrigger(t.id, 'dilewati: akun nonaktif');
     if (!a.replizAccountId) return finishTrigger(t.id, 'dilewati: akun belum terhubung ke Repliz');
+    if (!a.isConnected) return finishTrigger(t.id, 'dilewati: akun terputus di Repliz — reconnect di dashboard Repliz');
     const q = await remainingQuota(a);
     if (!q.left) return finishTrigger(t.id, `dilewati: ${q.note}`);
     const quota = Math.min(t.actionsPerRun, q.left);
@@ -227,6 +229,25 @@ export async function runTrigger(triggerId: number, opts: { manual?: boolean } =
 }
 
 // ---------- balas komentar di postingan sendiri (antrean Repliz) ----------
+/** Draf balasan AI untuk satu komentar di antrean Repliz (dipakai worker & halaman Inbox). */
+export async function draftCommentReply(
+  a: ThreadsAccount, c: ReplizQueueComment,
+  pre: { provider?: Provider; persona?: { soul: string; memory: string } } = {},
+) {
+  return generateReply({
+    provider: pre.provider || await resolveProvider(a.providerId),
+    persona: pre.persona || await effectivePersona(a.id),
+    kind: 'reply',
+    context: { label: 'komentar orang di postingan kamu', parentText: c.content?.description || '' },
+    post: {
+      username: c.comment.owner?.name || 'seseorang', text: c.comment.text || '', likes: 0, replies: 0, reposts: 0, shares: 0,
+      takenAt: c.comment.createdAt ? Math.floor(new Date(c.comment.createdAt).getTime() / 1000) : 0,
+    },
+    instruction: a.replyInstruction || 'Balas komentar ini dengan ramah dan nyambung dengan isi komentarnya.',
+    recentTexts: await recentReplyTexts(a.id),
+  });
+}
+
 export async function runReplyJob(accountId: number, opts: { manual?: boolean } = {}): Promise<{ status: string }> {
   const a = await getAccount(accountId);
   if (!a) throw new Error('Akun tidak ditemukan');
@@ -238,6 +259,7 @@ export async function runReplyJob(accountId: number, opts: { manual?: boolean } 
     if (settings.paused && !opts.manual) return finish('dilewati: aplikasi di-pause');
     if (!a.enabled) return finish('dilewati: akun nonaktif');
     if (!a.replizAccountId) return finish('dilewati: akun belum terhubung ke Repliz');
+    if (!a.isConnected) return finish('dilewati: akun terputus di Repliz — reconnect di dashboard Repliz');
     const q = await remainingQuota(a);
     if (!q.left) return finish(`dilewati: ${q.note}`);
     const quota = Math.min(a.replyPerRun, q.left);
@@ -269,16 +291,7 @@ export async function runReplyJob(accountId: number, opts: { manual?: boolean } 
       };
       let text: string;
       try {
-        text = await generateReply({
-          provider, persona, kind: 'reply',
-          context: { label: 'komentar orang di postingan kamu', parentText: c.content?.description || '' },
-          post: {
-            username: author, text: c.comment.text || '', likes: 0, replies: 0, reposts: 0, shares: 0,
-            takenAt: c.comment.createdAt ? Math.floor(new Date(c.comment.createdAt).getTime() / 1000) : 0,
-          },
-          instruction: a.replyInstruction || 'Balas komentar ini dengan ramah dan nyambung dengan isi komentarnya.',
-          recentTexts: await recentReplyTexts(a.id),
-        });
+        text = await draftCommentReply(a, c, { provider, persona });
       } catch (e) {
         failed++; await log('error', src, `AI gagal: ${(e as Error).message}`); break;
       }
