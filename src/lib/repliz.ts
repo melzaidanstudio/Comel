@@ -129,11 +129,12 @@ function friendly(status: number, message: string) {
 async function call<T>(method: string, path: string, opts: { query?: Query; body?: unknown } = {}): Promise<T> {
   const conn = await getReplizConnection();
   if (conn.source === 'none') {
-    throw new ReplizError(0, missingKeysMessage(conn));
+    throw new ReplizError(401, missingKeysMessage(conn)); // 401: tidak ada kredensial (bukan kiriman yang tidak pasti)
   }
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   let res: Response;
+  let text = '';
   try {
     res = await fetch(buildUrl(path, opts.query), {
       method,
@@ -145,12 +146,12 @@ async function call<T>(method: string, path: string, opts: { query?: Query; body
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
       signal: ctrl.signal,
     });
+    text = await res.text(); // masih di bawah timeout: body yang macet tidak menggantung selamanya
   } catch (e) {
     throw new ReplizError(0, (e as Error).name === 'AbortError' ? 'Repliz tidak menjawab (timeout)' : `Gagal menghubungi Repliz: ${(e as Error).message}`);
   } finally {
     clearTimeout(timer);
   }
-  const text = await res.text();
   let json: unknown = undefined;
   if (text) { try { json = JSON.parse(text); } catch { json = undefined; } }
   if (!res.ok) {

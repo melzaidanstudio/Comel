@@ -1,13 +1,16 @@
 import { and, count, eq, gte, sql } from 'drizzle-orm';
 import { db } from './db';
 import { actions, type Provider, type ThreadsAccount } from './db/schema';
+import { revealSecret } from './secrets';
 
 const mask = (s: string) => (s ? `••••${s.slice(-4)}` : '');
 
 /** Provider tanpa API key mentah. */
 export function publicProvider(p: Provider) {
   const { apiKey, ...rest } = p;
-  return { ...rest, apiKeyMasked: mask(apiKey), hasKey: Boolean(apiKey) };
+  let plain = '';
+  try { plain = revealSecret(apiKey); } catch { plain = ''; }
+  return { ...rest, apiKeyMasked: mask(plain), hasKey: Boolean(apiKey) };
 }
 export type PublicProvider = ReturnType<typeof publicProvider>;
 

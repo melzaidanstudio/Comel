@@ -31,7 +31,7 @@ function runLightpanda(url: string, { timeoutMs = 90_000 }: ScrapeOpts = {}): Pr
     child.on('error', (e: NodeJS.ErrnoException) => {
       clearTimeout(timer);
       reject(e.code === 'ENOENT'
-        ? new Error(`Lightpanda tidak ditemukan ("${LIGHTPANDA_BIN}"). Install dulu atau set LIGHTPANDA_BIN.`)
+        ? Object.assign(new Error(`Lightpanda tidak ditemukan ("${LIGHTPANDA_BIN}"). Install dulu atau set LIGHTPANDA_BIN.`), { code: 'LIGHTPANDA_MISSING' })
         : e);
     });
     child.on('close', (code) => {
@@ -53,7 +53,10 @@ async function fetchHtml(url: string, opts: ScrapeOpts = {}): Promise<string> {
         const html = await runLightpanda(url, opts);
         if (html.length > 5000) return html;
         lastErr = new Error(`Halaman kosong/terlalu kecil (${html.length} byte): ${url}`);
-      } catch (e) { lastErr = e; }
+      } catch (e) {
+        if ((e as { code?: string }).code === 'LIGHTPANDA_MISSING') throw e; // tidak ada gunanya diulang
+        lastErr = e;
+      }
       await new Promise((r) => setTimeout(r, 2000));
     }
     throw lastErr;

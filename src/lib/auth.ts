@@ -34,6 +34,10 @@ export const auth = betterAuth({
           const [{ n }] = await db.select({ n: count() }).from(user);
           if (n > 0) throw new APIError('FORBIDDEN', { message: 'Pendaftaran ditutup: akun admin sudah ada.' });
           const allowed = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+          // contoh dari .env.example belum diganti → jangan biarkan siapa pun memakai alamat contoh itu
+          if (allowed && /@contoh\.com$/.test(allowed)) {
+            throw new APIError('FORBIDDEN', { message: 'ADMIN_EMAIL di .env masih contoh — isi dengan email Anda lalu restart.' });
+          }
           if (allowed && u.email.toLowerCase() !== allowed) {
             throw new APIError('FORBIDDEN', { message: 'Email ini tidak diizinkan menjadi admin (cek ADMIN_EMAIL).' });
           }

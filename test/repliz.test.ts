@@ -63,3 +63,16 @@ test('fromStored: Access Key angka tetap string', () => {
   assert.equal(fromStored('v1:abc:def:ghi'), 'v1:abc:def:ghi');
   assert.equal(fromStored(null), '');
 });
+
+test('cleanReply & outputProblem: penalaran terpotong dibuang, tautan/nomor/mention ditolak', async () => {
+  const { cleanReply, outputProblem } = await import('../src/lib/llm');
+  assert.equal(cleanReply('<think>hmm panjang sekali', 280), '');
+  assert.equal(cleanReply('alasan saya...</think>Mantap banget!', 280), 'Mantap banget!');
+  assert.equal(cleanReply('<think>x</think> Enak!', 280), 'Enak!');
+  assert.equal(outputProblem('Cek promo di bit.ly/abc', 'budi'), 'berisi tautan');
+  assert.equal(outputProblem('Info hub https://x.co', 'budi'), 'berisi tautan');
+  assert.equal(outputProblem('WA 0812-3456-7890 ya', 'budi'), 'berisi nomor telepon');
+  assert.equal(outputProblem('Coba tanya @penipu_bogor', 'budi'), 'menyebut akun lain');
+  assert.equal(outputProblem('Makasih @budi, enak banget!', 'budi'), '');
+  assert.equal(outputProblem('Rp 25.000 aja, murah banget. Jam 10.00 buka', 'budi'), '');
+});

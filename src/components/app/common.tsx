@@ -20,7 +20,7 @@ export function Pill({ t = 'muted', children, className }: { t?: Tone; children:
 }
 
 function StatusPill({ status }: { status: string }) {
-  const map: Record<string, [Tone, string]> = { sent: ['ok', 'terkirim'], failed: ['err', 'gagal'], dry_run: ['info', 'dry-run'], skipped: ['muted', 'skip'] };
+  const map: Record<string, [Tone, string]> = { sent: ['ok', 'terkirim'], failed: ['err', 'gagal'], dry_run: ['info', 'dry-run'], skipped: ['muted', 'skip'], uncertain: ['warn', 'tidak pasti'] };
   const [t, label] = map[status] || ['muted', status];
   return <Pill t={t}>{label}</Pill>;
 }

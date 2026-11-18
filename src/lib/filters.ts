@@ -31,6 +31,7 @@ function tokenize(expr: string): Token[] {
       if (['AND', 'DAN', '&', '&&'].includes(up)) tokens.push({ t: 'AND' });
       else if (['OR', 'ATAU', '|', '||'].includes(up)) tokens.push({ t: 'OR' });
       else if (['NOT', 'BUKAN', 'TANPA'].includes(up)) tokens.push({ t: 'NOT' });
+      else if (w === '-') tokens.push({ t: 'NOT' }); // -(promo OR diskon)
       else if (w.startsWith('-') && w.length > 1) { tokens.push({ t: 'NOT' }); tokens.push({ t: 'term', v: w.slice(1) }); }
       else tokens.push({ t: 'term', v: w });
     }

@@ -2,6 +2,7 @@ import { and, eq, isNull, lte, or, sql } from 'drizzle-orm';
 import { db } from './db';
 import { threadsAccounts, triggers } from './db/schema';
 import { syncAllAccounts, updateAccount } from './accounts';
+import { cleanupActions } from './actions';
 import { runReplyJob, runTrigger } from './engine';
 import { resolveActiveHours, withinActiveHours } from './hours';
 import { log } from './logger';
@@ -23,15 +24,19 @@ async function tick() {
       .returning();
     for (const t of due) {
       if (settings.paused) continue;
-      const hours = resolveActiveHours(t.activeHours, settings);
-      if (!withinActiveHours(hours, settings.timezone)) {
-        await db.update(triggers).set({ lastStatus: `di luar jam aktif (${hours})` }).where(eq(triggers.id, t.id));
-        continue;
+      try { // satu pekerjaan bermasalah tidak boleh menghentikan yang lain
+        const hours = resolveActiveHours(t.activeHours, settings);
+        if (!withinActiveHours(hours, settings.timezone)) {
+          await db.update(triggers).set({ lastStatus: `di luar jam aktif (${hours})` }).where(eq(triggers.id, t.id));
+          continue;
+        }
+        runTrigger(t.id).catch(async (e) => {
+          await log('error', `trigger:${t.name}`, e.message);
+          await db.update(triggers).set({ lastRunAt: new Date(), lastStatus: `ERROR: ${String(e.message).slice(0, 200)}` }).where(eq(triggers.id, t.id));
+        });
+      } catch (e) {
+        await log('error', `trigger:${t.name}`, (e as Error).message);
       }
-      runTrigger(t.id).catch(async (e) => {
-        await log('error', `trigger:${t.name}`, e.message);
-        await db.update(triggers).set({ lastRunAt: new Date(), lastStatus: `ERROR: ${String(e.message).slice(0, 200)}` }).where(eq(triggers.id, t.id));
-      });
     }
 
     const dueAcc = await db.update(threadsAccounts)
@@ -41,15 +46,19 @@ async function tick() {
       .returning();
     for (const a of dueAcc) {
       if (settings.paused) continue;
-      const hours = resolveActiveHours(a.replyActiveHours, settings);
-      if (!withinActiveHours(hours, settings.timezone)) {
-        await updateAccount(a.id, { lastReplyStatus: `di luar jam aktif (${hours})` });
-        continue;
+      try {
+        const hours = resolveActiveHours(a.replyActiveHours, settings);
+        if (!withinActiveHours(hours, settings.timezone)) {
+          await updateAccount(a.id, { lastReplyStatus: `di luar jam aktif (${hours})` });
+          continue;
+        }
+        runReplyJob(a.id).catch(async (e) => {
+          await log('error', `balas:${a.name}`, e.message);
+          await updateAccount(a.id, { lastReplyStatus: `ERROR: ${String(e.message).slice(0, 200)}` });
+        });
+      } catch (e) {
+        await log('error', `balas:${a.name}`, (e as Error).message);
       }
-      runReplyJob(a.id).catch(async (e) => {
-        await log('error', `balas:${a.name}`, e.message);
-        await updateAccount(a.id, { lastReplyStatus: `ERROR: ${String(e.message).slice(0, 200)}` });
-      });
     }
   } catch (e) {
     await log('error', 'scheduler', (e as Error).message);
@@ -60,6 +69,7 @@ async function tick() {
 
 /** Status koneksi akun di Repliz bisa berubah (token kedaluwarsa, akun dihapus) → samakan tiap jam. */
 async function syncAccounts() {
+  await cleanupActions().catch((e) => log('warn', 'scheduler', `Bersih-bersih riwayat gagal: ${(e as Error).message}`));
   try {
     const r = await syncAllAccounts();
     if (r.missing) await log('warn', 'scheduler', `${r.missing} akun tidak ditemukan di Repliz`);

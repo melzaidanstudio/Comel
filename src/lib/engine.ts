@@ -9,12 +9,13 @@ import { db } from './db';
 import { threadsAccounts, triggers, type ThreadsAccount, type Trigger } from './db/schema';
 import { getAccount, updateAccount } from './accounts';
 import {
-  failedAttempts, hasActedOn, recentReplyTexts, recentlyCommentedAuthor, recordAction, sentLast24h, sentLastHour, type NewAction,
+  failedAttempts, hasActedOn, lastSentAt, recentReplyTexts, recentlyCommentedAuthor, recordAction, sentLast24h, sentLastHour,
+  type NewAction,
 } from './actions';
 import {
   checkPost, engagementScore, hasMetricFilter, parseExpr, parseTagList, positiveTerms, type Ast,
 } from './filters';
-import { generateReply, resolveProvider } from './llm';
+import { generateReply, outputProblem, resolveProvider } from './llm';
 import { withAccountLock } from './locks';
 import { log } from './logger';
 import { effectivePersona } from './persona';
@@ -48,6 +49,34 @@ function buildQueries(queries: string[], ast: Ast | null): string[] {
 
 /** Error yang membuat percobaan berikutnya pasti gagal juga → hentikan putaran. */
 const isFatal = (e: unknown) => e instanceof ReplizError && [0, 401, 402, 403, 429].includes(e.status);
+/** Error tingkat akun/paket — bukan kesalahan postingan, jadi tidak dicatat sebagai gagal untuk postingan itu. */
+const isAccountLevel = (e: unknown) => e instanceof ReplizError && [401, 402, 403, 429].includes(e.status);
+/** Repliz tidak menjawab saat mengirim: kiriman mungkin sudah masuk. */
+const isUncertain = (e: unknown) => e instanceof ReplizError && e.status === 0;
+
+/** Jaga jeda acak (Pengaturan → jeda) sejak kiriman terakhir akun, termasuk dari putaran/pekerjaan lain. */
+async function waitForGap(accountId: number, s: AppSettings) {
+  const last = await lastSentAt(accountId);
+  if (!last) return;
+  const wait = last.getTime() + randomDelayMs(s) - Date.now();
+  if (wait > 0) await sleep(Math.min(wait, 15 * 60_000));
+}
+
+/** Catat hasil kirim yang gagal sesuai jenis errornya. Return true bila putaran harus berhenti. */
+async function recordSendError(e: unknown, base: Omit<NewAction, 'status'>, text: string, src: string, accountId: number) {
+  const m = (e as Error).message;
+  if (isUncertain(e)) {
+    await recordAction({ ...base, replyText: text, status: 'uncertain', error: m });
+    await log('warn', src, `Repliz tidak menjawab saat mengirim ke ${base.targetUrl || base.targetUser} — mungkin sudah terkirim, tidak dicoba ulang: ${m}`);
+  } else if (isAccountLevel(e)) {
+    await log('error', src, `Kirim dihentikan: ${m}`);
+  } else {
+    await recordAction({ ...base, replyText: text, status: 'failed', error: m });
+    await log('error', src, `Gagal kirim ke ${base.targetUrl || base.targetUser}: ${m}`);
+  }
+  if (isFatal(e)) { await updateAccount(accountId, { statusNote: `ERROR: ${m.slice(0, 200)}` }); return true; }
+  return false;
+}
 
 /** Sisa kuota kirim akun: min(batas per jam, batas harian). */
 async function remainingQuota(a: ThreadsAccount) {
@@ -69,6 +98,8 @@ async function withMetrics(p: EvaluatedPost): Promise<EvaluatedPost> {
       isReply: p.isReply || root.isReply, tag: p.tag || root.tag, metricsChecked: true,
     };
   } catch (e) {
+    // Lightpanda tidak terpasang → semua postingan akan gagal; hentikan putaran dengan error yang jelas
+    if ((e as { code?: string }).code === 'LIGHTPANDA_MISSING') throw e;
     return { ...p, ok: false, reason: `gagal cek metrik: ${(e as Error).message.slice(0, 80)}` };
   }
 }
@@ -179,11 +210,14 @@ export async function runTrigger(triggerId: number, opts: { manual?: boolean } =
     const provider = await resolveProvider(t.providerId, a.providerId);
     const persona = await effectivePersona(a.id);
     let sent = 0; let skipped = 0; let failed = 0; let dry = 0;
+    const authors = new Set<string>(); // satu komentar per penulis per putaran
 
     for (const post of candidates) {
       if (sent + dry >= quota) break;
       if (sent + dry + skipped + failed >= quota * 4) break; // batas percobaan per putaran
       if ((await getSettings()).paused && !opts.manual) break;
+      const author = post.username.toLowerCase();
+      if (author && authors.has(author)) continue;
 
       const base: Omit<NewAction, 'status'> = {
         accountId: a.id, triggerId: t.id, kind: 'comment', targetCode: post.code, targetId: post.contentId,
@@ -203,29 +237,43 @@ export async function runTrigger(triggerId: number, opts: { manual?: boolean } =
         await recordAction({ ...base, status: 'skipped', error: 'AI memutuskan SKIP (tidak relevan/sensitif)' });
         continue;
       }
+      const problem = outputProblem(text, post.username);
+      if (problem) {
+        skipped++;
+        await recordAction({ ...base, replyText: text, status: 'skipped', error: `teks AI ditolak: ${problem}` });
+        await log('warn', src, `Komentar AI untuk ${post.url} tidak dikirim (${problem}): ${text}`);
+        continue;
+      }
       if (t.dryRun) {
         dry++;
+        authors.add(author);
         await recordAction({ ...base, replyText: text, status: 'dry_run' });
         await log('info', src, `[DRY RUN] @${post.username}: ${text}`);
         continue;
       }
-      if (sent > 0) await sleep(randomDelayMs(settings));
+      await waitForGap(a.id, settings);
+      // dicek ulang tepat sebelum kirim (bisa berubah selama menunggu jeda)
+      if (await hasActedOn(a.id, post.code) || await recentlyCommentedAuthor(a.id, post.username, t.authorCooldownHours)) continue;
+      if ((await getSettings()).paused && !opts.manual) break;
       try {
         const res = await createComment(post.contentId!, { accountId: a.replizAccountId, text });
         sent++;
+        authors.add(author);
         await recordAction({ ...base, replyText: text, status: 'sent', resultId: res.commentId || null });
         await log('info', src, `Komentar terkirim ke @${post.username} (${post.url}): ${text}`);
       } catch (e) {
         failed++;
-        const m = (e as Error).message;
-        await recordAction({ ...base, replyText: text, status: 'failed', error: m });
-        await log('error', src, `Gagal kirim ke ${post.url}: ${m}`);
-        if (isFatal(e)) { await updateAccount(a.id, { statusNote: `ERROR: ${m.slice(0, 200)}` }); break; }
+        if (isUncertain(e)) authors.add(author);
+        if (await recordSendError(e, base, text, src, a.id)) break;
       }
     }
     return finishTrigger(t.id, `terkirim ${sent}${dry ? `, dry-run ${dry}` : ''}, skip ${skipped}, gagal ${failed}`);
   });
-  return r.busy ? { status: 'akun sedang menjalankan pekerjaan lain, coba lagi nanti' } : r.value;
+  if (!r.busy) return r.value;
+  const status = 'ditunda: akun sedang menjalankan pekerjaan lain';
+  // jangan buang jadwal: coba lagi 2 menit lagi
+  if (!opts.manual) await db.update(triggers).set({ nextRunAt: new Date(Date.now() + 120_000), lastStatus: status }).where(eq(triggers.id, t.id));
+  return { status: opts.manual ? 'akun sedang menjalankan pekerjaan lain, coba lagi nanti' : status };
 }
 
 // ---------- balas komentar di postingan sendiri (antrean Repliz) ----------
@@ -296,13 +344,22 @@ export async function runReplyJob(accountId: number, opts: { manual?: boolean } 
         failed++; await log('error', src, `AI gagal: ${(e as Error).message}`); break;
       }
       if (!text || text === 'SKIP') { skipped++; await recordAction({ ...base, status: 'skipped', error: 'AI memutuskan SKIP' }); continue; }
+      const problem = outputProblem(text, author);
+      if (problem) {
+        skipped++;
+        await recordAction({ ...base, replyText: text, status: 'skipped', error: `teks AI ditolak: ${problem}` });
+        await log('warn', src, `Balasan AI untuk @${author} tidak dikirim (${problem}): ${text}`);
+        continue;
+      }
       if (a.replyDryRun) {
         dry++;
         await recordAction({ ...base, replyText: text, status: 'dry_run' });
         await log('info', src, `[DRY RUN] balas @${author}: ${text}`);
         continue;
       }
-      if (sent > 0) await sleep(randomDelayMs(settings));
+      await waitForGap(a.id, settings);
+      if (await hasActedOn(a.id, c._id)) continue; // mungkin sudah dibalas manual dari Inbox
+      if ((await getSettings()).paused && !opts.manual) break;
       try {
         const out = await replyComment(c._id, text);
         sent++;
@@ -310,15 +367,15 @@ export async function runReplyJob(accountId: number, opts: { manual?: boolean } 
         await log('info', src, `Balasan terkirim ke @${author}: ${text}`);
       } catch (e) {
         failed++;
-        const m = (e as Error).message;
-        await recordAction({ ...base, replyText: text, status: 'failed', error: m });
-        await log('error', src, `Gagal balas @${author}: ${m}`);
-        if (isFatal(e)) break;
+        if (await recordSendError(e, base, text, src, a.id)) break;
       }
     }
     return finish(`terkirim ${sent}${dry ? `, dry-run ${dry}` : ''}, skip ${skipped}, gagal ${failed}`);
   });
-  return r.busy ? { status: 'akun sedang menjalankan pekerjaan lain, coba lagi nanti' } : r.value;
+  if (!r.busy) return r.value;
+  const status = 'ditunda: akun sedang menjalankan pekerjaan lain';
+  if (!opts.manual) await updateAccount(a.id, { nextReplyAt: new Date(Date.now() + 120_000), lastReplyStatus: status });
+  return { status: opts.manual ? 'akun sedang menjalankan pekerjaan lain, coba lagi nanti' : status };
 }
 
 /** Dipanggil webhook `comment`: jadwalkan balas komentar akun ini secepatnya. */

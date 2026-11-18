@@ -23,7 +23,7 @@ export default function HistoryPage() {
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Semua status</SelectItem><SelectItem value="sent">Terkirim</SelectItem>
-            <SelectItem value="failed">Gagal</SelectItem><SelectItem value="dry_run">Dry-run</SelectItem><SelectItem value="skipped">Skip</SelectItem>
+            <SelectItem value="failed">Gagal</SelectItem><SelectItem value="dry_run">Dry-run</SelectItem><SelectItem value="skipped">Skip</SelectItem><SelectItem value="uncertain">Tidak pasti</SelectItem>
           </SelectContent>
         </Select>
         <Select value={kind} onValueChange={setKind}>

@@ -69,12 +69,14 @@ if [ -n "${COMEL_DOMAIN:-}" ]; then
   env_set DOMAIN "$COMEL_DOMAIN"
 fi
 DOMAIN=$(env_get DOMAIN)
+DOMAIN_RE='^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?\.[A-Za-z]{2,}$'
 case "$DOMAIN" in ''|*203-0-113-5*)
   IP=$(curl -fsS4 --max-time 10 https://ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
-  [ -n "$IP" ] || die "Tidak bisa mengetahui IP publik VPS; isi DOMAIN di .env"
+  [[ "$IP" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] || die "Tidak bisa mengetahui IP publik VPS; isi DOMAIN di .env"
   DOMAIN="comel.${IP//./-}.sslip.io"
   env_set DOMAIN "$DOMAIN";;
 esac
+[[ "$DOMAIN" =~ $DOMAIN_RE ]] || die "DOMAIN di .env tidak valid: $DOMAIN"
 env_set BETTER_AUTH_URL "https://$DOMAIN"
 
 WEB_PORT=$(env_get WEB_PORT)
@@ -101,6 +103,8 @@ say "Build & menjalankan Comel (build pertama ±5–10 menit)"
 PROFILE=()
 [ "$MODE" = caddy ] && PROFILE=(--profile https)
 docker compose -p comel "${PROFILE[@]}" up -d --build --remove-orphans
+# image lama hasil build sebelumnya (±1–3 GB per update) tidak dipakai lagi
+docker image prune -f >/dev/null 2>&1 || true
 
 printf 'Menunggu dashboard siap'
 for _ in $(seq 1 90); do
@@ -151,6 +155,7 @@ NGINX
   if ! grep -q 'ssl_certificate' "$CONF"; then
     # cek lewat DNS publik (Let's Encrypt juga memakai DNS publik); cache resolver VPS bisa tertinggal
     MYIP=$(curl -fsS4 --max-time 10 https://ifconfig.me 2>/dev/null || true)
+    [[ "$MYIP" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] || MYIP=''
     dns_ok() {
       curl -fsS --max-time 10 "https://dns.google/resolve?name=$DOMAIN&type=A" 2>/dev/null | grep -q "\"data\":\"$MYIP\"" \
         || getent ahostsv4 "$DOMAIN" | awk '{print $1}' | grep -qx "$MYIP"

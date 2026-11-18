@@ -1,15 +1,18 @@
 import { z } from 'zod';
 import { parseExpr } from './filters';
+import { isValidTimezone } from './hours';
 
 const int = (min = 0, max = 1_000_000) => z.number().int().min(min).max(max);
 const hhmm = z.string().regex(/^([01]\d|2[0-4]):[0-5]\d$/, 'format jam HH:MM');
+const T = '([01]?\\d|2[0-4])[:.][0-5]\\d';
+const RANGE = `${T}\\s*-\\s*${T}`;
 const activeHours = z.string().max(100).refine(
-  (v) => v === '' || v === '24h' || /^(\d{1,2}[:.]\d{2}\s*-\s*\d{1,2}[:.]\d{2})(\s*,\s*\d{1,2}[:.]\d{2}\s*-\s*\d{1,2}[:.]\d{2})*$/.test(v),
+  (v) => v === '' || v === '24h' || v === 'default' || new RegExp(`^${RANGE}(\\s*,\\s*${RANGE})*$`).test(v),
   'format jam aktif: kosong, 24h, atau 06:00-22:00',
 );
 
 export const settingsSchema = z.object({
-  timezone: z.string().min(1),
+  timezone: z.string().min(1).max(64).refine(isValidTimezone, 'zona waktu tidak dikenal (contoh: Asia/Jakarta)'),
   activeStart: hhmm,
   activeEnd: hhmm,
   paused: z.boolean(),

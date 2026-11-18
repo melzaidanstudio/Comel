@@ -93,7 +93,8 @@ export function TriggerDialog({ open, onOpenChange, initial, editId, accounts, p
               placeholder='kuliner AND (bogor OR "kota hujan") -promo' help="AND/DAN, OR/ATAU, NOT/BUKAN atau -kata, kurung, &quot;frasa&quot;. Nama topic tag ikut dicocokkan." />
             <TextField label="Kata yang dihindari" value={f.excludeWords} onChange={set('excludeWords')} placeholder="giveaway, judi" help="Dipisah koma" />
             <TextField label="User yang dihindari" value={f.excludeUsers} onChange={set('excludeUsers')} placeholder="@akunpesaing" help="Dipisah koma" />
-            <SwitchField className="sm:col-span-2" label="Ikutkan postingan yang berupa balasan (bukan utas utama)" checked={f.includeReplies} onChange={set('includeReplies')} />
+            <SwitchField className="sm:col-span-2" label="Ikutkan postingan yang berupa balasan (bukan utas utama)" checked={f.includeReplies} onChange={set('includeReplies')}
+              help="Repliz tidak menandai balasan; balasan baru terdeteksi bila metrik viral dicek (trigger punya syarat viral)." />
           </Section>
 
           <Section title="Topic tag" description="Threads mengizinkan satu topic tag per postingan, mis. Kuliner Bogor.">

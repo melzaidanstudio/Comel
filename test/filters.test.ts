@@ -53,3 +53,9 @@ test('topic tag', () => {
   assert.equal(checkPost(post({ tag: { ...tag, name: 'Politik', display: 'politik' } }), { excludeTags: 'politik' }).ok, false);
   assert.equal(checkPost(post({ text: 'enak', tag }), {}, { ast: parseExpr('"kuliner bogor"') }).ok, true);
 });
+
+test('ekspresi: -(a OR b) = NOT (a OR b)', () => {
+  const ast = parseExpr('kuliner -(promo OR diskon)');
+  assert.deepEqual(ast, { op: 'AND', a: { op: 'TERM', v: 'kuliner' }, b: { op: 'NOT', a: { op: 'OR', a: { op: 'TERM', v: 'promo' }, b: { op: 'TERM', v: 'diskon' } } } });
+  assert.deepEqual(positiveTerms(ast!), ['kuliner']);
+});
