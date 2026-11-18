@@ -2,14 +2,15 @@ import { db } from './db';
 import { settings } from './db/schema';
 import type { AppSettings } from './types';
 
-const DEFAULT_SETTINGS: AppSettings = {
+/** Nilai yang disarankan — dipakai juga oleh tombol "Default" di Pengaturan. */
+export const DEFAULT_SETTINGS: AppSettings = {
   timezone: 'Asia/Jakarta',
   activeStart: '06:00', // jam aktif default
   activeEnd: '22:00',
   paused: false, // tombol darurat
   delayMinSeconds: 180, // jeda antar komentar 3–10 menit (sama dengan pacing Repliz)
   delayMaxSeconds: 600,
-  metricLookupMax: 12, // maks postingan yang dicek metrik viralnya via Lightpanda per putaran
+  metricLookupMax: 30, // maks postingan yang dicek metrik viralnya via Lightpanda per putaran (±5 dtk/postingan)
   maxChars: 280, // Threads maks 500
   skipSensitive: true,
 };

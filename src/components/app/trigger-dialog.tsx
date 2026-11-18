@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -12,13 +13,22 @@ import { defaultHoursLabel, type AccountJ, type AppSettings, type ProviderJ, typ
 
 type Form = Omit<TriggerJ, 'id' | 'createdAt' | 'nextRunAt' | 'lastRunAt' | 'lastStatus' | 'queries'> & { queriesText: string };
 
+/**
+ * Nilai yang disarankan untuk filter & jadwal (dipakai trigger baru dan tombol "Default").
+ * Urutan "Teratas" karena syarat viral hanya dicek untuk sejumlah postingan pertama per putaran.
+ */
+const RECOMMENDED = {
+  includeReplies: false, tagMatch: 'exact', tagAsSource: true,
+  minLikes: 100, minReplies: 50, minReposts: 0, minShares: 50, minQuotes: 0, metricLogic: 'all',
+  maxAgeHours: 72, minAgeMinutes: 0, activeHours: '', sortBy: 'engagement',
+  actionsPerRun: 3, intervalMinutes: 15, authorCooldownHours: 168,
+} satisfies Partial<Form>;
+
 export function emptyTrigger(accountId: number): Form {
   return {
-    name: '', accountId, enabled: true, queriesText: '', matchExpr: '', excludeWords: '', excludeUsers: '', includeReplies: false,
-    topicTags: '', excludeTags: '', tagMatch: 'exact', tagAsSource: true,
-    minLikes: 100, minReplies: 50, minReposts: 0, minShares: 50, minQuotes: 0, metricLogic: 'all',
-    maxAgeHours: 72, minAgeMinutes: 0, activeHours: '', sortBy: 'newest',
-    actionsPerRun: 3, intervalMinutes: 15, authorCooldownHours: 168, instruction: '', providerId: null, dryRun: true,
+    name: '', accountId, enabled: true, queriesText: '', matchExpr: '', excludeWords: '', excludeUsers: '',
+    topicTags: '', excludeTags: '', instruction: '', providerId: null, dryRun: true,
+    ...RECOMMENDED,
   };
 }
 
@@ -144,6 +154,10 @@ export function TriggerDialog({ open, onOpenChange, initial, editId, accounts, p
           </Section>
         </div>
         <DialogFooter className="m-0">
+          <Button variant="ghost" className="sm:mr-auto" title="Filter viral, waktu & jadwal kembali ke nilai yang disarankan. Nama, akun, kata kunci, topic tag, instruksi AI & dry-run tidak diubah."
+            onClick={() => { setF((p) => ({ ...p, ...RECOMMENDED })); toast.info('Filter & jadwal kembali ke nilai default. Klik Simpan untuk menerapkan.'); }}>
+            <RotateCcw />Default
+          </Button>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Batal</Button>
           <Button onClick={save} disabled={busy === 'save' || !f.name}>{busy === 'save' ? 'Menyimpan…' : 'Simpan'}</Button>
         </DialogFooter>

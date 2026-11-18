@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, FlaskConical, KeyRound, RefreshCw, Save } from 'lucide-react';
+import { Copy, FlaskConical, KeyRound, RefreshCw, RotateCcw, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/app/app-shell';
 import { Pill } from '@/components/app/common';
@@ -125,11 +125,18 @@ export default function SettingsPage() {
           <Card className="py-5">
             <CardHeader className="flex flex-row items-center justify-between px-5">
               <CardTitle>Umum</CardTitle>
-              <Button disabled={busy === 'save'} onClick={() => run('save', async () => {
-                const { paused: _p, ...rest } = f; // eslint-disable-line @typescript-eslint/no-unused-vars
-                setF(await api<AppSettings>('/settings', { method: 'PUT', body: rest }));
-                toast.success('Pengaturan disimpan');
-              })}><Save />Simpan</Button>
+              <div className="flex gap-2">
+                <Button variant="outline" disabled={busy === 'def'} onClick={() => run('def', async () => {
+                  const d = await api<AppSettings>('/settings?defaults=1');
+                  setF({ ...d, paused: f.paused });
+                  toast.info('Nilai default dimuat. Klik Simpan untuk menerapkan.');
+                })}><RotateCcw />Default</Button>
+                <Button disabled={busy === 'save'} onClick={() => run('save', async () => {
+                  const { paused: _p, ...rest } = f; // eslint-disable-line @typescript-eslint/no-unused-vars
+                  setF(await api<AppSettings>('/settings', { method: 'PUT', body: rest }));
+                  toast.success('Pengaturan disimpan');
+                })}><Save />Simpan</Button>
+              </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-6 px-5">
               <Section title="Jam aktif default" description='Dipakai trigger & balas komentar yang memilih "Ikuti default". Mulai = selesai berarti 24 jam.'>
@@ -141,7 +148,7 @@ export default function SettingsPage() {
               <Section title="Komentar">
                 <NumberField label="Panjang maksimal komentar (karakter)" value={f.maxChars} onChange={(v) => setF({ ...f, maxChars: v })} help="Threads membatasi 500" />
                 <NumberField label="Maks postingan dicek metrik viral per putaran" value={f.metricLookupMax} onChange={(v) => setF({ ...f, metricLookupMax: v })}
-                  help="Repliz tidak memberi angka like/balasan/share; angka diambil via Lightpanda (±5 detik per postingan)." />
+                  help="Repliz tidak memberi angka like/balasan/share; angka diambil via Lightpanda (±5 detik per postingan). Disarankan 30; maks 50." />
                 <NumberField label="Jeda antar komentar minimal (detik)" value={f.delayMinSeconds} onChange={(v) => setF({ ...f, delayMinSeconds: v })}
                   help="Default 180–600 detik (3–10 menit), sama dengan pacing Repliz." />
                 <NumberField label="Jeda antar komentar maksimal (detik)" value={f.delayMaxSeconds} onChange={(v) => setF({ ...f, delayMaxSeconds: v })} />
