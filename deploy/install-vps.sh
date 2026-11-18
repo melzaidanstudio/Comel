@@ -149,16 +149,17 @@ NGINX
     ok "nginx: $DOMAIN → 127.0.0.1:$WEB_PORT"
   fi
   if ! grep -q 'ssl_certificate' "$CONF"; then
+    # cek lewat DNS publik (Let's Encrypt juga memakai DNS publik); cache resolver VPS bisa tertinggal
     MYIP=$(curl -fsS4 --max-time 10 https://ifconfig.me 2>/dev/null || true)
-    if [ -n "$MYIP" ]; then
+    dns_ok() {
+      curl -fsS --max-time 10 "https://dns.google/resolve?name=$DOMAIN&type=A" 2>/dev/null | grep -q "\"data\":\"$MYIP\"" \
+        || getent ahostsv4 "$DOMAIN" | awk '{print $1}' | grep -qx "$MYIP"
+    }
+    if [ -n "$MYIP" ] && ! dns_ok; then
       printf 'Menunggu DNS %s → %s' "$DOMAIN" "$MYIP"
-      for _ in $(seq 1 60); do
-        getent ahostsv4 "$DOMAIN" | awk '{print $1}' | grep -qx "$MYIP" && break
-        printf '.'; sleep 5
-      done
+      for _ in $(seq 1 36); do dns_ok && break; printf '.'; sleep 5; done
       echo
-      getent ahostsv4 "$DOMAIN" | awk '{print $1}' | grep -qx "$MYIP" \
-        || die "DNS $DOMAIN belum mengarah ke $MYIP. Cek A record, tunggu beberapa menit, lalu jalankan skrip ini lagi."
+      dns_ok || warn "DNS $DOMAIN belum terlihat mengarah ke $MYIP — tetap mencoba mengambil sertifikat."
     fi
     say "Mengambil sertifikat HTTPS (Let's Encrypt)"
     if ! command -v certbot >/dev/null 2>&1 || ! certbot plugins 2>/dev/null | grep -q nginx; then
