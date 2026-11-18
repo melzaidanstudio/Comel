@@ -6,6 +6,8 @@
 #   bash /opt/comel/deploy/install-vps.sh
 # Update:
 #   cd /opt/comel && git pull && bash deploy/install-vps.sh
+# Pakai domain/subdomain sendiri (A record sudah mengarah ke IP VPS):
+#   COMEL_DOMAIN=comel.domainanda.com bash deploy/install-vps.sh
 #
 # Yang dilakukan:
 #   1. memasang Docker bila belum ada;
@@ -61,6 +63,11 @@ while [ -z "$EMAIL" ]; do
 done
 env_set ADMIN_EMAIL "$EMAIL"
 
+# ganti domain: COMEL_DOMAIN=comel.domainanda.com bash deploy/install-vps.sh
+if [ -n "${COMEL_DOMAIN:-}" ]; then
+  [[ "$COMEL_DOMAIN" =~ ^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?\.[A-Za-z]{2,}$ ]] || die "Domain tidak valid: $COMEL_DOMAIN"
+  env_set DOMAIN "$COMEL_DOMAIN"
+fi
 DOMAIN=$(env_get DOMAIN)
 case "$DOMAIN" in ''|*203-0-113-5*)
   IP=$(curl -fsS4 --max-time 10 https://ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
@@ -142,6 +149,17 @@ NGINX
     ok "nginx: $DOMAIN → 127.0.0.1:$WEB_PORT"
   fi
   if ! grep -q 'ssl_certificate' "$CONF"; then
+    MYIP=$(curl -fsS4 --max-time 10 https://ifconfig.me 2>/dev/null || true)
+    if [ -n "$MYIP" ]; then
+      printf 'Menunggu DNS %s → %s' "$DOMAIN" "$MYIP"
+      for _ in $(seq 1 60); do
+        getent ahostsv4 "$DOMAIN" | awk '{print $1}' | grep -qx "$MYIP" && break
+        printf '.'; sleep 5
+      done
+      echo
+      getent ahostsv4 "$DOMAIN" | awk '{print $1}' | grep -qx "$MYIP" \
+        || die "DNS $DOMAIN belum mengarah ke $MYIP. Cek A record, tunggu beberapa menit, lalu jalankan skrip ini lagi."
+    fi
     say "Mengambil sertifikat HTTPS (Let's Encrypt)"
     if ! command -v certbot >/dev/null 2>&1 || ! certbot plugins 2>/dev/null | grep -q nginx; then
       apt-get update -qq && apt-get install -y -qq certbot python3-certbot-nginx

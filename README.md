@@ -81,6 +81,10 @@ Lalu buka `https://comel.<ip-dengan-minus>.sslip.io` di browser HP → **buat ak
 
 Update: `cd /opt/comel && git pull && bash deploy/install-vps.sh`
 
+Pindah ke domain/subdomain sendiri: buat **A record** (mis. `comel` → IP VPS) di DNS domain Anda, lalu
+`cd /opt/comel && git pull && COMEL_DOMAIN=comel.domainanda.com bash deploy/install-vps.sh`.
+Skrip menunggu DNS aktif, memperbarui nginx + sertifikat HTTPS, dan memulai ulang Comel. Setelahnya, ganti URL webhook di dashboard Repliz.
+
 Backup: `docker compose -p comel exec db pg_dump -U comel comel > backup.sql` dan folder `./data`.
 
 ---
