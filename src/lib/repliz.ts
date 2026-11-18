@@ -45,14 +45,34 @@ export async function getReplizConnection(): Promise<ReplizConnection> {
   return { accessKey, secretKey, webhookToken, source: accessKey && secretKey ? 'dashboard' : 'none' };
 }
 
+/** Rapikan input kunci; format "AccessKey:SecretKey" (seperti contoh curl -u) di satu kolom ikut dipecah. */
+export function normalizeKeys(access?: string, secret?: string) {
+  let accessKey = (access || '').trim();
+  let secretKey = (secret || '').trim();
+  const pair = !secretKey ? accessKey : !accessKey ? secretKey : '';
+  if (pair.includes(':')) {
+    const i = pair.indexOf(':');
+    accessKey = pair.slice(0, i).trim();
+    secretKey = pair.slice(i + 1).trim();
+  }
+  return { accessKey, secretKey };
+}
+
 export async function saveReplizKeys(input: { accessKey?: string; secretKey?: string; clear?: boolean }) {
   if (input.clear) {
     await store(KEY.access, '');
     await store(KEY.secret, '');
     return;
   }
-  if (input.accessKey) await store(KEY.access, input.accessKey.trim());
-  if (input.secretKey) await store(KEY.secret, encrypt(input.secretKey.trim()));
+  const { accessKey, secretKey } = normalizeKeys(input.accessKey, input.secretKey);
+  if (accessKey) await store(KEY.access, accessKey);
+  if (secretKey) await store(KEY.secret, encrypt(secretKey));
+}
+
+/** Pesan bila kunci belum lengkap (menyebut kunci mana yang kosong). */
+export function missingKeysMessage(c: Pick<ReplizConnection, 'accessKey' | 'secretKey'>) {
+  const missing = [!c.accessKey && 'Access Key', !c.secretKey && 'Secret Key'].filter(Boolean).join(' & ');
+  return missing ? `Repliz belum terhubung: ${missing} belum tersimpan. Isi di menu Pengaturan → Koneksi Repliz lalu klik Simpan kunci.` : '';
 }
 
 /** Token webhook (header x-token). Dibuat otomatis bila belum ada. */
@@ -96,7 +116,7 @@ function friendly(status: number, message: string) {
 async function call<T>(method: string, path: string, opts: { query?: Query; body?: unknown } = {}): Promise<T> {
   const conn = await getReplizConnection();
   if (conn.source === 'none') {
-    throw new ReplizError(0, 'Repliz belum terhubung: isi Access Key & Secret Key di menu Pengaturan.');
+    throw new ReplizError(0, missingKeysMessage(conn));
   }
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);

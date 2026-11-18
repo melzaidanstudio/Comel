@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { contentToPost } from '../src/lib/repliz';
+import { contentToPost, missingKeysMessage, normalizeKeys } from '../src/lib/repliz';
 import { checkPost, hasMetricFilter } from '../src/lib/filters';
 
 test('contentToPost: objek konten Repliz → Post', () => {
@@ -43,4 +43,16 @@ test('skipMetrics: tahap 1 mengabaikan syarat viral, tahap 2 menerapkannya', () 
   assert.equal(checkPost(post, f, { now, skipMetrics: true }).ok, true);
   assert.equal(checkPost(post, f, { now }).ok, false);
   assert.equal(checkPost({ ...post, likes: 150 }, f, { now }).ok, true);
+});
+
+test('normalizeKeys: format AccessKey:SecretKey di satu kolom dipecah', () => {
+  assert.deepEqual(normalizeKeys(' AK123:SK456 ', ''), { accessKey: 'AK123', secretKey: 'SK456' });
+  assert.deepEqual(normalizeKeys('', 'AK123:SK456'), { accessKey: 'AK123', secretKey: 'SK456' });
+  assert.deepEqual(normalizeKeys('AK123', ' SK456 '), { accessKey: 'AK123', secretKey: 'SK456' });
+  assert.deepEqual(normalizeKeys('AK123', undefined), { accessKey: 'AK123', secretKey: '' });
+});
+
+test('missingKeysMessage menyebut kunci yang kosong', () => {
+  assert.match(missingKeysMessage({ accessKey: 'AK', secretKey: '' }), /Secret Key belum tersimpan/);
+  assert.equal(missingKeysMessage({ accessKey: 'AK', secretKey: 'SK' }), '');
 });

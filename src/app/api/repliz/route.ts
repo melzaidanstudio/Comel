@@ -1,5 +1,5 @@
 import { body, HttpError, route } from '@/lib/api';
-import { ensureWebhookToken, getReplizConnection, saveReplizKeys } from '@/lib/repliz';
+import { ensureWebhookToken, getReplizConnection, missingKeysMessage, saveReplizKeys } from '@/lib/repliz';
 import { replizKeysSchema } from '@/lib/validators';
 
 const mask = (s: string) => (s ? `${s.slice(0, 4)}••••${s.slice(-4)}` : '');
@@ -21,5 +21,10 @@ export const PUT = route(async (req) => {
   if ((await getReplizConnection()).source === 'env') {
     throw new HttpError(400, 'Kunci Repliz diatur lewat environment (REPLIZ_ACCESS_KEY / REPLIZ_SECRET_KEY); ubah di file .env server.');
   }
-  await saveReplizKeys(replizKeysSchema.parse(await body(req)));
+  const input = replizKeysSchema.parse(await body(req));
+  await saveReplizKeys(input);
+  if (!input.clear) {
+    const c = await getReplizConnection();
+    if (c.source === 'none') throw new HttpError(400, missingKeysMessage(c));
+  }
 });

@@ -49,7 +49,8 @@ function ReplizCard() {
       <CardContent className="flex flex-col gap-6 px-5">
         <Section title="Kunci API">
           <TextField label="Access Key" value={accessKey} onChange={setAccessKey}
-            placeholder={s?.accessKeyMasked ? `${s.accessKeyMasked} (tersimpan — isi untuk mengganti)` : ''} />
+            placeholder={s?.accessKeyMasked ? `${s.accessKeyMasked} (tersimpan — isi untuk mengganti)` : ''}
+            help="Boleh juga tempel format AccessKey:SecretKey di sini." />
           <TextField type="password" label="Secret Key" value={secretKey} onChange={setSecretKey}
             placeholder={s?.hasKeys ? '•••••••• (tersimpan — isi untuk mengganti)' : ''} help="Disimpan terenkripsi di server." />
           <div className="flex flex-wrap gap-2 sm:col-span-2">
