@@ -54,47 +54,34 @@ Aplikasi pribadi untuk:
 Butuh VPS Linux (x86_64/arm64), RAM ≥ 2 GB, Docker. Semua langkah bisa dari HP lewat **Browser terminal** di hPanel Hostinger (VPS → Kelola → Browser terminal) atau aplikasi SSH (Termius/JuiceSSH).
 
 ```bash
-# 1. Docker (lewati bila OS "Ubuntu with Docker")
-curl -fsSL https://get.docker.com | sh
-
-# 2. Ambil kode
-git clone https://github.com/melzaidanstudio/comel.git
-cd comel
-cp .env.example .env
-
-# 3. Isi rahasia & domain otomatis (domain gratis sslip.io dari IP VPS)
-EMAIL=email-anda@contoh.com          # ← ganti dengan email Anda (jadi akun admin)
-IP=$(curl -s4 ifconfig.me | tr . -)
-sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 16)/; \
-s/^BETTER_AUTH_SECRET=.*/BETTER_AUTH_SECRET=$(openssl rand -hex 32)/; \
-s/^SECRET_KEY=.*/SECRET_KEY=$(openssl rand -hex 32)/; \
-s/^ADMIN_EMAIL=.*/ADMIN_EMAIL=$EMAIL/; \
-s/^DOMAIN=.*/DOMAIN=comel.$IP.sslip.io/; \
-s#^BETTER_AUTH_URL=.*#BETTER_AUTH_URL=https://comel.$IP.sslip.io#" .env
-cat .env
-
-# 4. Buka port & jalankan (build pertama ±5 menit)
-sudo ufw allow 80,443/tcp
-docker compose --profile https up -d --build
-docker compose logs -f web worker
+git clone https://github.com/melzaidanstudio/comel.git /opt/comel
+bash /opt/comel/deploy/install-vps.sh
 ```
+
+Skrip `deploy/install-vps.sh` (aman dijalankan ulang) akan:
+1. memasang Docker bila belum ada;
+2. membuat `.env` dengan rahasia acak dan domain gratis `comel.<ip-dengan-minus>.sslip.io`, lalu menanyakan email admin;
+3. memilih port lokal yang kosong (`WEB_PORT`, mulai 3100) agar tidak bentrok dengan aplikasi lain di VPS;
+4. build & menjalankan `db`, `migrate`, `web`, `worker` (build pertama ±5–10 menit);
+5. memasang HTTPS: bila **nginx** sudah memakai port 80/443 → menambah situs nginx + sertifikat Let's Encrypt (certbot), situs lain tidak diubah; bila port 80/443 kosong → memakai Caddy bawaan (profil `https`).
 
 Lalu buka `https://comel.<ip-dengan-minus>.sslip.io` di browser HP → **buat akun admin** dengan email yang sama (hanya `ADMIN_EMAIL` yang diizinkan; setelah admin dibuat, pendaftaran ditutup).
 
-> Hostinger: bila firewall di hPanel (VPS → Security → Firewall) aktif, tambahkan izin port 80 & 443.
+> Repo private: saat `git clone` diminta, isi username GitHub dan **token** (GitHub → Settings → Developer settings → Fine-grained token, akses *Contents: Read-only* ke repo ini) sebagai password.
+> Hostinger: bila firewall di hPanel (VPS → Security → Firewall) aktif, pastikan port 80 & 443 diizinkan.
 > Simpan `.env` baik-baik — `SECRET_KEY` mengenkripsi Secret Key Repliz yang disimpan dari dashboard; bila berubah, kunci harus diisi ulang di Pengaturan.
 
 | Service | Fungsi |
 |---|---|
 | `db` | PostgreSQL 16 (volume `pgdata`) |
 | `migrate` | Menjalankan migrasi Drizzle sekali saat start |
-| `web` | Dashboard + API (Next.js) di `127.0.0.1:3000` |
+| `web` | Dashboard + API (Next.js) di `127.0.0.1:${WEB_PORT}` (default 3000) |
 | `worker` | Penjadwal trigger & balas komentar |
 | `caddy` | HTTPS otomatis (profil `https`) |
 
-Update: `git pull && docker compose --profile https up -d --build`
+Update: `cd /opt/comel && git pull && bash deploy/install-vps.sh`
 
-Backup: `docker compose exec db pg_dump -U comel comel > backup.sql` dan folder `./data`.
+Backup: `docker compose -p comel exec db pg_dump -U comel comel > backup.sql` dan folder `./data`.
 
 ---
 

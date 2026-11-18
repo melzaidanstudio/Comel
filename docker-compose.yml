@@ -40,8 +40,9 @@ services:
     restart: unless-stopped
     command: ["npx", "next", "start"]
     ports:
-      # hanya dari VPS sendiri; buka dari HP lewat profil https (Caddy)
-      - "127.0.0.1:3000:3000"
+      # hanya dari VPS sendiri; dari luar lewat Caddy (profil https) atau nginx.
+      # WEB_PORT di .env bila 3000 sudah dipakai aplikasi lain.
+      - "127.0.0.1:${WEB_PORT:-3000}:3000"
     depends_on:
       migrate: { condition: service_completed_successfully }
 
