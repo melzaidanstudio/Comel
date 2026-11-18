@@ -1,7 +1,6 @@
 import { and, count, eq, gte, sql } from 'drizzle-orm';
 import { db } from './db';
 import { actions, type Provider, type ThreadsAccount } from './db/schema';
-import { cookieSummary } from './posters/browser';
 
 const mask = (s: string) => (s ? `••••${s.slice(-4)}` : '');
 
@@ -12,20 +11,12 @@ export function publicProvider(p: Provider) {
 }
 export type PublicProvider = ReturnType<typeof publicProvider>;
 
-/** Akun tanpa token/cookie/password mentah. */
+/** Akun + jumlah kiriman 24 jam & 1 jam terakhir. */
 export async function publicAccount(a: ThreadsAccount) {
-  const { accessToken, cookies, loginPasswordEnc, totpSecretEnc, ...rest } = a;
-  const [{ n }] = await db.select({ n: count() }).from(actions).where(and(
-    eq(actions.accountId, a.id), eq(actions.status, 'sent'), gte(actions.createdAt, sql`now() - interval '24 hours'`),
-  ));
-  return {
-    ...rest,
-    tokenMasked: mask(accessToken),
-    hasToken: Boolean(accessToken),
-    cookieInfo: cookieSummary(cookies),
-    hasLoginPassword: Boolean(loginPasswordEnc),
-    hasTotp: Boolean(totpSecretEnc),
-    sent24h: n,
-  };
+  const sent = (interval: string) => db.select({ n: count() }).from(actions).where(and(
+    eq(actions.accountId, a.id), eq(actions.status, 'sent'), gte(actions.createdAt, sql.raw(`now() - interval '${interval}'`)),
+  )).then((r) => r[0].n);
+  const [sent24h, sent1h] = await Promise.all([sent('24 hours'), sent('1 hour')]);
+  return { ...a, sent24h, sent1h };
 }
 export type PublicAccount = Awaited<ReturnType<typeof publicAccount>>;

@@ -44,7 +44,6 @@ services:
       - "127.0.0.1:3000:3000"
     depends_on:
       migrate: { condition: service_completed_successfully }
-    shm_size: "512mb"
 
   # penjadwal trigger & balas komentar
   worker:
@@ -56,7 +55,6 @@ services:
       RUN_MIGRATIONS: "false"
     depends_on:
       migrate: { condition: service_completed_successfully }
-    shm_size: "512mb"
 
   # HTTPS otomatis untuk akses dari HP/browser: docker compose --profile https up -d
   caddy:

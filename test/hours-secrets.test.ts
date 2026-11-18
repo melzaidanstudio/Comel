@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 // DATA_DIR diarahkan ke folder sementara oleh script `npm test`
 import { resolveActiveHours, withinActiveHours } from '../src/lib/hours';
-import { encrypt, decrypt, totp } from '../src/lib/secrets';
+import { encrypt, decrypt } from '../src/lib/secrets';
 import { cleanReply } from '../src/lib/llm';
 
 const m = (hhmm: string) => { const [h, mm] = hhmm.split(':').map(Number); return h * 60 + mm; };
@@ -31,13 +31,6 @@ test('enkripsi password', () => {
   assert.notEqual(enc, encrypt('rahasia 123 😀'));
   assert.equal(decrypt(enc), 'rahasia 123 😀');
   assert.throws(() => decrypt(enc.slice(0, -4) + 'AAAA'));
-});
-
-test('TOTP sesuai RFC 6238', () => {
-  const secret = 'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ';
-  assert.equal(totp(secret, { time: 59_000, digits: 8 }), '94287082');
-  assert.equal(totp(secret, { time: 1111111109_000, digits: 8 }), '07081804');
-  assert.throws(() => totp('bukan-base32!'), /2FA/);
 });
 
 test('cleanReply', () => {

@@ -15,6 +15,7 @@ export const settingsSchema = z.object({
   paused: z.boolean(),
   delayMinSeconds: int(0, 3600),
   delayMaxSeconds: int(0, 3600),
+  metricLookupMax: int(0, 50),
   maxChars: int(20, 500),
   skipSensitive: z.boolean(),
 }).partial();
@@ -34,30 +35,24 @@ export const providerSchema = z.object({
 export const accountSchema = z.object({
   name: z.string().min(1).max(100),
   username: z.string().max(100).transform((s) => s.replace(/^@/, '').trim()),
-  method: z.enum(['api', 'browser']),
-  accessToken: z.string().max(4000).optional(),
-  clearAccessToken: z.boolean().optional(),
-  cookies: z.string().max(100_000).optional(),
-  clearCookies: z.boolean().optional(),
-  browserEngine: z.enum(['chromium', 'lightpanda']),
-  loginEngine: z.enum(['chromium', 'lightpanda']),
-  scrapeWithCookies: z.boolean(),
-  loginUsername: z.string().max(200).transform((s) => s.replace(/^@/, '').trim()),
-  loginPassword: z.string().max(500).optional(),
-  totpSecret: z.string().max(200).optional(),
-  clearLoginSecrets: z.boolean().optional(),
-  autoLogin: z.boolean(),
+  replizAccountId: z.string().min(1, 'pilih akun Threads dari Repliz').max(64),
   dailyLimit: int(0, 1000),
+  hourlyLimit: int(0, 100),
   providerId: z.number().int().positive().nullable(),
   enabled: z.boolean(),
   replyEnabled: z.boolean(),
   replyIntervalMinutes: int(5, 1440),
   replyPerRun: int(0, 50),
-  replyScope: z.enum(['both', 'own_posts', 'my_comments']),
   replyMaxAgeHours: int(1, 24 * 30),
   replyInstruction: z.string().max(5000),
   replyDryRun: z.boolean(),
   replyActiveHours: activeHours,
+});
+
+export const replizKeysSchema = z.object({
+  accessKey: z.string().max(500).optional(),
+  secretKey: z.string().max(500).optional(),
+  clear: z.boolean().optional(),
 });
 
 export const triggerSchema = z.object({

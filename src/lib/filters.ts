@@ -144,7 +144,8 @@ type PostFilter = Partial<{
 export function checkPost(
   post: Post,
   f: PostFilter,
-  { ast = null, now = Math.floor(Date.now() / 1000), ownUsername = '' }: { ast?: Ast | null; now?: number; ownUsername?: string } = {},
+  { ast = null, now = Math.floor(Date.now() / 1000), ownUsername = '', skipMetrics = false }:
+    { ast?: Ast | null; now?: number; ownUsername?: string; skipMetrics?: boolean } = {},
 ): { ok: boolean; reason?: string } {
   if (ownUsername && post.username.toLowerCase() === ownUsername.toLowerCase()) return { ok: false, reason: 'postingan sendiri' };
   if (!f.includeReplies && post.isReply) return { ok: false, reason: 'postingan berupa balasan' };
@@ -160,7 +161,7 @@ export function checkPost(
     ['share', post.shares, f.minShares],
     ['quote', post.quotes, f.minQuotes],
   ] as const).filter(([, , min]) => Number(min) > 0);
-  if (conds.length) {
+  if (conds.length && !skipMetrics) {
     const pass = conds.map(([, val, min]) => val >= Number(min));
     const ok = f.metricLogic === 'any' ? pass.some(Boolean) : pass.every(Boolean);
     if (!ok) {
@@ -186,6 +187,10 @@ export function checkPost(
   const tagText = post.tag ? ` #${post.tag.name} #${post.tag.display}` : '';
   if (ast && !evalExpr(ast, `${post.text} @${post.username}${tagText}`)) return { ok: false, reason: 'tidak cocok kata kunci' };
   return { ok: true };
+}
+
+export function hasMetricFilter(f: PostFilter): boolean {
+  return [f.minLikes, f.minReplies, f.minReposts, f.minShares, f.minQuotes].some((v) => Number(v) > 0);
 }
 
 export function engagementScore(p: Post): number {

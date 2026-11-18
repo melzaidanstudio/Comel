@@ -19,6 +19,7 @@ export default function DashboardPage() {
   const settings = useApi<AppSettings>('/settings');
   const acts = useApi<ActionRow[]>('/actions?limit=12', { refreshMs: 15000 });
   const logs = useApi<LogRow[]>('/logs?limit=60', { refreshMs: 15000 });
+  const repliz = useApi<{ hasKeys: boolean }>('/repliz');
   const { busy, run } = useAction();
   const accName = (id: number) => accs.data?.find((a) => a.id === id)?.name ?? `#${id}`;
   const reloadAll = () => { void stats.reload(); void trigs.reload(); void acts.reload(); void logs.reload(); };
@@ -34,6 +35,14 @@ export default function DashboardPage() {
       <PageHeader title="Dasbor" description="Ringkasan 24 jam terakhir">
         <Button variant="outline" onClick={reloadAll}><RefreshCw />Muat ulang</Button>
       </PageHeader>
+      {repliz.data && !repliz.data.hasKeys ? (
+        <Alert className="mb-4 border-sky-500/40 bg-sky-500/10">
+          <AlertDescription>
+            🔌 Repliz belum terhubung. Isi Access Key & Secret Key di <Link className="underline" href="/settings">Pengaturan</Link>,
+            lalu tambahkan akun Threads di <Link className="underline" href="/accounts">Akun Threads</Link>.
+          </AlertDescription>
+        </Alert>
+      ) : null}
       {s?.paused ? (
         <Alert className="mb-4 border-amber-500/40 bg-amber-500/10">
           <AlertDescription>⏸ Aplikasi sedang di-PAUSE. Penjadwal tidak akan mengirim komentar sampai dilanjutkan.</AlertDescription>

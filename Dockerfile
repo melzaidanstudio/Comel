@@ -1,8 +1,7 @@
-# ---------- base: Node + Lightpanda ----------
+# ---------- base: Node + Lightpanda (Lightpanda hanya untuk mengambil metrik viral) ----------
 FROM node:22-bookworm-slim AS base
 ARG TARGETARCH
-ENV NEXT_TELEMETRY_DISABLED=1 \
-    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates curl tini \
  && rm -rf /var/lib/apt/lists/*
@@ -32,9 +31,7 @@ ENV NODE_ENV=production \
     PORT=3000 \
     HOSTNAME=0.0.0.0
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev --no-audit --no-fund \
- && npx playwright-core install --with-deps chromium \
- && rm -rf /var/lib/apt/lists/* /root/.npm
+RUN npm ci --omit=dev --no-audit --no-fund && rm -rf /root/.npm
 COPY --from=build /app/.next ./.next
 COPY next.config.ts tsconfig.json drizzle.config.ts ./
 COPY drizzle ./drizzle

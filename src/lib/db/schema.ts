@@ -75,31 +75,20 @@ export const threadsAccounts = pgTable('threads_accounts', {
   id: serial().primaryKey(),
   name: text().notNull(),
   username: text().notNull().default(''),
-  method: text().notNull().default('api'), // api | browser
-  // API resmi
-  accessToken: text().notNull().default(''),
-  threadsUserId: text().notNull().default(''),
-  tokenRefreshedAt: tz(),
-  // browser
-  cookies: text().notNull().default(''),
-  browserEngine: text().notNull().default('chromium'), // untuk kirim komentar
-  loginEngine: text().notNull().default('lightpanda'), // untuk login
-  scrapeWithCookies: boolean().notNull().default(false),
-  loginUsername: text().notNull().default(''),
-  loginPasswordEnc: text().notNull().default(''),
-  totpSecretEnc: text().notNull().default(''),
-  autoLogin: boolean().notNull().default(true),
-  lastLoginAttempt: tz(),
-  loginPaused: boolean().notNull().default(false),
+  // akun Threads yang terhubung di Repliz (jembatan koneksi)
+  replizAccountId: text().notNull().default(''),
+  picture: text().notNull().default(''),
+  isConnected: boolean().notNull().default(false),
+  syncedAt: tz(),
   // umum
   dailyLimit: integer().notNull().default(50),
+  hourlyLimit: integer().notNull().default(10),
   providerId: integer().references(() => providers.id, { onDelete: 'set null' }),
   enabled: boolean().notNull().default(true),
   // balas komentar otomatis
   replyEnabled: boolean().notNull().default(false),
   replyIntervalMinutes: integer().notNull().default(30),
   replyPerRun: integer().notNull().default(5),
-  replyScope: text().notNull().default('both'), // own_posts | my_comments | both
   replyMaxAgeHours: integer().notNull().default(48),
   replyInstruction: text().notNull().default(''),
   replyDryRun: boolean().notNull().default(false),
@@ -148,7 +137,7 @@ export const triggers = pgTable('triggers', {
   sortBy: text().notNull().default('engagement'), // engagement | newest
   actionsPerRun: integer().notNull().default(3),
   intervalMinutes: integer().notNull().default(15),
-  authorCooldownHours: integer().notNull().default(24),
+  authorCooldownHours: integer().notNull().default(168), // 7 hari, sama dengan aturan Repliz
   // AI
   instruction: text().notNull().default(''),
   providerId: integer().references(() => providers.id, { onDelete: 'set null' }),

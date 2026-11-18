@@ -5,7 +5,6 @@ import { updateAccount } from './accounts';
 import { runReplyJob, runTrigger } from './engine';
 import { resolveActiveHours, withinActiveHours } from './hours';
 import { log } from './logger';
-import { api as apiPoster } from './posters';
 import { getSettings } from './settings';
 
 const TICK_MS = 20_000;
@@ -59,15 +58,8 @@ async function tick() {
   }
 }
 
-async function refreshTokens() {
-  const rows = await db.select().from(threadsAccounts).where(and(eq(threadsAccounts.method, 'api'), eq(threadsAccounts.enabled, true)));
-  for (const a of rows) if (a.accessToken) await apiPoster.maybeRefreshToken(a);
-}
-
 export function startScheduler() {
   setInterval(tick, TICK_MS);
   setTimeout(tick, 3000);
-  setInterval(() => { refreshTokens().catch((e) => log('error', 'scheduler', e.message)); }, 6 * 3600_000);
-  setTimeout(() => { refreshTokens().catch(() => {}); }, 10_000);
   void log('info', 'scheduler', 'Penjadwal berjalan');
 }

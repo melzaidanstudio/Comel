@@ -17,8 +17,8 @@ export function emptyTrigger(accountId: number): Form {
     name: '', accountId, enabled: true, queriesText: '', matchExpr: '', excludeWords: '', excludeUsers: '', includeReplies: false,
     topicTags: '', excludeTags: '', tagMatch: 'exact', tagAsSource: true,
     minLikes: 100, minReplies: 50, minReposts: 0, minShares: 50, minQuotes: 0, metricLogic: 'all',
-    maxAgeHours: 72, minAgeMinutes: 0, activeHours: '', sortBy: 'engagement',
-    actionsPerRun: 3, intervalMinutes: 15, authorCooldownHours: 24, instruction: '', providerId: null, dryRun: true,
+    maxAgeHours: 72, minAgeMinutes: 0, activeHours: '', sortBy: 'newest',
+    actionsPerRun: 3, intervalMinutes: 15, authorCooldownHours: 168, instruction: '', providerId: null, dryRun: true,
   };
 }
 
@@ -88,7 +88,7 @@ export function TriggerDialog({ open, onOpenChange, initial, editId, accounts, p
 
           <Section title="Kata kunci">
             <TextareaField className="sm:col-span-2" label="Kata pencarian di Threads (satu per baris)" value={f.queriesText} onChange={set('queriesText')} rows={3}
-              placeholder={'kuliner bogor\nmakanan enak bogor'} help="±20 postingan teratas per kata. Kosong = diambil dari ekspresi / topic tag." />
+              placeholder={'kuliner bogor\nmakanan enak bogor'} help="Dicari lewat Repliz (Threads Research). Kosong = diambil dari ekspresi / topic tag." />
             <TextField className="sm:col-span-2" label="Ekspresi kata kunci (filter teks)" value={f.matchExpr} onChange={set('matchExpr')}
               placeholder='kuliner AND (bogor OR "kota hujan") -promo' help="AND/DAN, OR/ATAU, NOT/BUKAN atau -kata, kurung, &quot;frasa&quot;. Nama topic tag ikut dicocokkan." />
             <TextField label="Kata yang dihindari" value={f.excludeWords} onChange={set('excludeWords')} placeholder="giveaway, judi" help="Dipisah koma" />
@@ -105,11 +105,11 @@ export function TriggerDialog({ open, onOpenChange, initial, editId, accounts, p
             <SelectField label="Cara mencocokkan tag" value={f.tagMatch as 'exact' | 'contains'} onChange={set('tagMatch')}
               options={[['exact', 'Sama persis ("Kuliner Bogor" = "kulinerbogor")'], ['contains', 'Mengandung kata ("bogor" ⊂ "Kuliner Bogor")']]} />
             <TextField label="Tag yang dihindari" value={f.excludeTags} onChange={set('excludeTags')} placeholder="Loker Bogor, Politik" />
-            <SwitchField className="sm:col-span-2" label="Cari juga lewat halaman topic tag (trigger by tag)" checked={f.tagAsSource} onChange={set('tagAsSource')}
+            <SwitchField className="sm:col-span-2" label="Cari juga berdasarkan topic tag (trigger by tag)" checked={f.tagAsSource} onChange={set('tagAsSource')}
               help="Membuka halaman tag di Threads untuk tiap tag. Kata pencarian boleh dikosongkan." />
           </Section>
 
-          <Section title="Filter viralitas" description="0 = tidak dipakai">
+          <Section title="Filter viralitas" description="0 = tidak dipakai. Repliz tidak memberi angka ini, jadi diambil via Lightpanda untuk sejumlah kandidat teratas per putaran (atur di Pengaturan).">
             <NumberField label="Minimal suka" value={f.minLikes} onChange={set('minLikes')} />
             <NumberField label="Minimal balasan/komentar" value={f.minReplies} onChange={set('minReplies')} />
             <NumberField label="Minimal repost" value={f.minReposts} onChange={set('minReposts')} />
@@ -120,12 +120,13 @@ export function TriggerDialog({ open, onOpenChange, initial, editId, accounts, p
           </Section>
 
           <Section title="Filter waktu">
-            <NumberField label="Umur postingan maksimal (jam)" value={f.maxAgeHours} onChange={set('maxAgeHours')} help="0 = tanpa batas" />
+            <NumberField label="Umur postingan maksimal (jam)" value={f.maxAgeHours} onChange={set('maxAgeHours')} help="0 = tanpa batas. Juga dipakai sebagai rentang tanggal pencarian di Repliz." />
             <NumberField label="Umur postingan minimal (menit)" value={f.minAgeMinutes} onChange={set('minAgeMinutes')} />
             <ActiveHoursField label="Jam aktif" value={f.activeHours} onChange={set('activeHours')} defaultLabel={defaultHoursLabel(settings)}
               help="Di luar jam ini trigger tidak berjalan. Default diatur di Pengaturan." />
-            <SelectField label="Prioritas" value={f.sortBy as 'engagement' | 'newest'} onChange={set('sortBy')}
-              options={[['engagement', 'Paling viral dulu'], ['newest', 'Paling baru dulu']]} />
+            <SelectField label="Urutan pencarian" value={f.sortBy as 'engagement' | 'newest'} onChange={set('sortBy')}
+              options={[['newest', 'Terbaru dulu (Recent)'], ['engagement', 'Teratas / paling viral (Top)']]}
+              help="Terbaru = cocok untuk jadi pengomentar awal; Teratas = postingan yang sedang ramai." />
           </Section>
 
           <Section title="Jadwal">

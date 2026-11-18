@@ -5,7 +5,7 @@ import type { Post, PostTag } from './types';
 const THREADS = 'https://www.threads.com';
 const MAX_CONCURRENT = Number(process.env.SCRAPE_CONCURRENCY || 2);
 
-export type ScrapeOpts = { cookieFile?: string; timeoutMs?: number };
+type ScrapeOpts = { timeoutMs?: number };
 
 // ---------- antrian: batasi jumlah proses Lightpanda bersamaan ----------
 let running = 0;
@@ -19,11 +19,9 @@ async function withSlot<T>(fn: () => Promise<T>): Promise<T> {
   }
 }
 
-function runLightpanda(url: string, { cookieFile, timeoutMs = 90_000 }: ScrapeOpts = {}): Promise<string> {
+function runLightpanda(url: string, { timeoutMs = 90_000 }: ScrapeOpts = {}): Promise<string> {
   return new Promise((resolve, reject) => {
-    const args = ['fetch', '--dump', 'html', '--log-level', 'error'];
-    if (cookieFile) args.push('--cookie', cookieFile);
-    args.push(url);
+    const args = ['fetch', '--dump', 'html', '--log-level', 'error', url];
     const child = spawn(LIGHTPANDA_BIN, args, { stdio: ['ignore', 'pipe', 'pipe'] });
     const out: Buffer[] = [];
     let err = '';
@@ -136,30 +134,9 @@ function parsePosts(html: string): Post[] {
   return [...posts.values()];
 }
 
-// ---------- sumber data ----------
-export async function searchPosts(query: string, opts: ScrapeOpts = {}): Promise<Post[]> {
-  const html = await fetchHtml(`${THREADS}/search?q=${encodeURIComponent(query)}&serp_type=default`, opts);
-  return parsePosts(html);
-}
-
-/** Halaman topic tag. Tanpa login isinya ≈ pencarian nama tag (tag campuran) → tetap disaring per tag. */
-export async function searchTag(tagName: string, opts: ScrapeOpts & { tagId?: string } = {}): Promise<Post[]> {
-  const params = new URLSearchParams({ q: tagName, serp_type: 'tags' });
-  if (opts.tagId) params.set('tag_id', opts.tagId);
-  return parsePosts(await fetchHtml(`${THREADS}/search?${params}`, opts));
-}
-
+// ---------- metrik postingan ----------
+/** Halaman postingan publik → postingan utama + balasannya (dipakai untuk mengambil like/balasan/share). */
 export async function fetchPostPage(username: string, code: string, opts: ScrapeOpts = {}) {
   const posts = parsePosts(await fetchHtml(`${THREADS}/@${username}/post/${code}`, opts));
   return { root: posts.find((p) => p.code === code) || null, posts };
-}
-
-export async function fetchProfilePosts(username: string, opts: ScrapeOpts = {}): Promise<Post[]> {
-  const posts = parsePosts(await fetchHtml(`${THREADS}/@${username}`, opts));
-  return posts.filter((p) => p.username.toLowerCase() === username.toLowerCase());
-}
-
-export async function fetchProfileReplies(username: string, opts: ScrapeOpts = {}): Promise<Post[]> {
-  const posts = parsePosts(await fetchHtml(`${THREADS}/@${username}/replies`, opts));
-  return posts.filter((p) => p.username.toLowerCase() === username.toLowerCase() && p.isReply);
 }

@@ -8,6 +8,20 @@
       "when": 1794772042262,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795002544627,
+      "tag": "0001_repliz_accounts",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795002550846,
+      "tag": "0002_drop_legacy_login",
+      "breakpoints": true
     }
   ]
 }

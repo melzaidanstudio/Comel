@@ -1,4 +1,4 @@
-import { desc, eq, like, sql } from 'drizzle-orm';
+import { desc, like, sql } from 'drizzle-orm';
 import { db } from './db';
 import { tags } from './db/schema';
 import { normTag } from './filters';
@@ -24,11 +24,6 @@ export async function recordTags(posts: Post[]) {
       },
     });
   }
-}
-
-export async function findTag(name: string) {
-  const [row] = await db.select().from(tags).where(eq(tags.norm, normTag(name)));
-  return row || null;
 }
 
 export async function listTags(q = '', limit = 60) {

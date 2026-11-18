@@ -1,21 +1,29 @@
-import { and, desc, eq, gte, isNotNull } from 'drizzle-orm';
+/**
+ * Alur utama Comel di atas Repliz:
+ *  trigger → cari postingan Threads (Repliz Research) → saring → metrik viral (Lightpanda, bila perlu)
+ *          → AI menulis komentar → kirim lewat Repliz (Create Comment)
+ *  balas komentar → antrean komentar Repliz (pending) → AI → Reply Comment
+ */
+import { and, eq } from 'drizzle-orm';
 import { db } from './db';
-import { actions, triggers, type ThreadsAccount, type Trigger } from './db/schema';
+import { threadsAccounts, triggers, type ThreadsAccount, type Trigger } from './db/schema';
 import { getAccount, updateAccount } from './accounts';
 import {
-  failedAttempts, hasActedOn, recentReplyTexts, recentlyCommentedAuthor, recordAction, sentLast24h, type NewAction,
+  failedAttempts, hasActedOn, recentReplyTexts, recentlyCommentedAuthor, recordAction, sentLast24h, sentLastHour, type NewAction,
 } from './actions';
-import { checkPost, engagementScore, parseExpr, parseTagList, positiveTerms, type Ast } from './filters';
+import {
+  checkPost, engagementScore, hasMetricFilter, parseExpr, parseTagList, positiveTerms, type Ast,
+} from './filters';
 import { generateReply, resolveProvider } from './llm';
 import { withAccountLock } from './locks';
 import { log } from './logger';
 import { effectivePersona } from './persona';
-import { api as apiPoster, browser as browserPoster, posterFor } from './posters';
 import {
-  fetchPostPage, fetchProfilePosts, fetchProfileReplies, searchPosts, searchTag, type ScrapeOpts,
-} from './scraper';
+  contentToPost, createComment, listComments, replyComment, ReplizError, searchThreads, type ReplizQueueComment,
+} from './repliz';
+import { fetchPostPage } from './scraper';
 import { getSettings } from './settings';
-import { findTag, recordTags } from './tags';
+import { recordTags } from './tags';
 import type { AppSettings, EvaluatedPost, Post } from './types';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -37,49 +45,72 @@ function buildQueries(queries: string[], ast: Ast | null): string[] {
   return [...new Set(q)].slice(0, 8);
 }
 
-function scrapeOpts(a: ThreadsAccount): ScrapeOpts {
-  if (a.method === 'browser' && a.scrapeWithCookies && a.cookies) {
-    const cookieFile = browserPoster.writeCookieFile(a);
-    if (cookieFile) return { cookieFile };
-  }
-  return {};
+/** Error yang membuat percobaan berikutnya pasti gagal juga → hentikan putaran. */
+const isFatal = (e: unknown) => e instanceof ReplizError && [0, 401, 402, 403, 429].includes(e.status);
+
+/** Sisa kuota kirim akun: min(batas per jam, batas harian). */
+async function remainingQuota(a: ThreadsAccount) {
+  const [day, hour] = await Promise.all([sentLast24h(a.id), sentLastHour(a.id)]);
+  return {
+    left: Math.max(0, Math.min(a.dailyLimit - day, a.hourlyLimit - hour)),
+    note: day >= a.dailyLimit ? `batas harian tercapai (${day}/${a.dailyLimit})` : hour >= a.hourlyLimit ? `batas per jam tercapai (${hour}/${a.hourlyLimit})` : '',
+  };
 }
 
-const isAuthError = (m: string) => /Cookie|token|OAuth|session|sesi|Login gagal|190/i.test(m);
+/** Isi like/balasan/repost/share/quote dari halaman publik postingan (Lightpanda). */
+async function withMetrics(p: EvaluatedPost): Promise<EvaluatedPost> {
+  if (!p.username || !p.code || p.code === p.contentId) return { ...p, ok: false, reason: 'tidak bisa cek metrik (URL postingan tidak dikenal)' };
+  try {
+    const { root } = await fetchPostPage(p.username, p.code);
+    if (!root) return { ...p, ok: false, reason: 'tidak bisa cek metrik (postingan tidak terbaca)' };
+    return {
+      ...p, likes: root.likes, replies: root.replies, reposts: root.reposts, shares: root.shares, quotes: root.quotes,
+      isReply: p.isReply || root.isReply, tag: p.tag || root.tag, metricsChecked: true,
+    };
+  } catch (e) {
+    return { ...p, ok: false, reason: `gagal cek metrik: ${(e as Error).message.slice(0, 80)}` };
+  }
+}
 
 /** Kumpulkan & saring kandidat postingan untuk sebuah trigger. */
 export async function collectCandidates(t: Trigger, a: ThreadsAccount) {
+  if (!a.replizAccountId) throw new Error('Akun ini belum terhubung ke Repliz. Tambahkan ulang akun dari daftar akun Repliz.');
+  const settings = await getSettings();
   const ast = parseExpr(t.matchExpr);
-  const tagList = parseTagList(t.topicTags);
-  const tagSources = t.tagAsSource ? tagList.slice(0, 6) : [];
+  const tagSources = t.tagAsSource ? parseTagList(t.topicTags).slice(0, 6) : [];
   // dengan sumber tag, query otomatis dari ekspresi tidak dipakai (hanya query manual)
   const queries = buildQueries(t.queries || [], tagSources.length ? null : ast);
   if (!queries.length && !tagSources.length) {
-    throw new Error('Trigger belum punya kata pencarian, ekspresi kata kunci, atau topic tag (dengan opsi "cari lewat halaman tag")');
+    throw new Error('Trigger belum punya kata pencarian, ekspresi kata kunci, atau topic tag (dengan opsi "cari lewat topic tag")');
   }
 
-  const opts = scrapeOpts(a);
+  const now = nowSec();
+  const range = t.maxAgeHours > 0 ? { since: now - t.maxAgeHours * 3600, until: now } : {};
+  const sort = t.sortBy === 'newest' ? 'RECENT' as const : 'TOP' as const;
   const sources = [
-    ...tagSources.map((tag) => ({ label: `#${tag}`, run: async () => searchTag(tag, { ...opts, tagId: (await findTag(tag))?.tagId || undefined }) })),
-    ...queries.map((q) => ({ label: q, run: () => searchPosts(q, opts) })),
+    ...tagSources.map((tag) => ({ label: `#${tag}`, search: tag, mode: 'TAG' as const })),
+    ...queries.map((q) => ({ label: q, search: q, mode: 'KEYWORD' as const })),
   ];
+
   const seen = new Map<string, Post & { query: string }>();
   const errors: string[] = [];
   for (const src of sources) {
     try {
-      const posts = await src.run();
+      const r = await searchThreads({ accountId: a.replizAccountId, search: src.search, mode: src.mode, sort, ...range });
+      const posts = (r.docs || []).map(contentToPost);
       await recordTags(posts);
       for (const p of posts) if (!seen.has(p.code)) seen.set(p.code, { ...p, query: src.label });
     } catch (e) {
+      if (isFatal(e)) throw e; // kunci salah / paket / limit → semua sumber akan gagal
       errors.push(`"${src.label}": ${(e as Error).message}`);
     }
   }
-  if (!seen.size && errors.length) throw new Error(`Scrape gagal — ${errors.join(' | ')}`);
+  if (!seen.size && errors.length) throw new Error(`Pencarian Repliz gagal — ${errors.join(' | ')}`);
 
-  const now = nowSec();
+  // Tahap 1: semua filter kecuali metrik viral (hasil Repliz tidak memuat metrik)
   const evaluated: EvaluatedPost[] = [];
   for (const p of seen.values()) {
-    let v = checkPost(p, t, { ast, now, ownUsername: a.username });
+    let v = checkPost(p, t, { ast, now, ownUsername: a.username, skipMetrics: true });
     if (v.ok && await hasActedOn(a.id, p.code)) v = { ok: false, reason: 'sudah pernah diproses' };
     if (v.ok && await failedAttempts(a.id, p.code) >= 2) v = { ok: false, reason: 'gagal 2x sebelumnya' };
     if (v.ok && await recentlyCommentedAuthor(a.id, p.username, t.authorCooldownHours)) {
@@ -87,10 +118,27 @@ export async function collectCandidates(t: Trigger, a: ThreadsAccount) {
     }
     evaluated.push({ ...p, ok: v.ok, reason: v.reason || '' });
   }
-  const sorter = t.sortBy === 'newest'
-    ? (x: Post, y: Post) => y.takenAt - x.takenAt
-    : (x: Post, y: Post) => engagementScore(y) - engagementScore(x);
-  evaluated.sort((x, y) => (Number(y.ok) - Number(x.ok)) || sorter(x, y));
+  if (t.sortBy === 'newest') evaluated.sort((x, y) => y.takenAt - x.takenAt);
+
+  // Tahap 2: metrik viral via Lightpanda, hanya untuk kandidat teratas yang lolos tahap 1
+  if (hasMetricFilter(t)) {
+    const max = Math.max(0, Number(settings.metricLookupMax) || 0);
+    const passing = evaluated.filter((p) => p.ok);
+    const toCheck = passing.slice(0, max);
+    const checked = new Map((await Promise.all(toCheck.map(withMetrics))).map((p) => [p.code, p]));
+    for (let i = 0; i < evaluated.length; i++) {
+      const p = evaluated[i];
+      if (!p.ok) continue;
+      const m = checked.get(p.code);
+      if (!m) { evaluated[i] = { ...p, ok: false, reason: `metrik belum dicek (maks ${max} postingan per putaran)` }; continue; }
+      if (!m.ok) { evaluated[i] = m; continue; }
+      const v = checkPost(m, t, { ast, now, ownUsername: a.username });
+      evaluated[i] = { ...m, ok: v.ok, reason: v.reason || '' };
+    }
+  }
+
+  evaluated.sort((x, y) => (Number(y.ok) - Number(x.ok))
+    || (t.sortBy === 'newest' ? y.takenAt - x.takenAt : engagementScore(y) - engagementScore(x)));
   return { queries: sources.map((s) => s.label), posts: evaluated, errors };
 }
 
@@ -103,7 +151,7 @@ async function finishTrigger(id: number, status: string) {
   return { status };
 }
 
-/** Scrape → saring → komentar AI → kirim. */
+/** Scrape → saring → komentar AI → kirim lewat Repliz. */
 export async function runTrigger(triggerId: number, opts: { manual?: boolean } = {}): Promise<{ status: string }> {
   const [t] = await db.select().from(triggers).where(eq(triggers.id, triggerId));
   if (!t) throw new Error('Trigger tidak ditemukan');
@@ -115,19 +163,19 @@ export async function runTrigger(triggerId: number, opts: { manual?: boolean } =
     const settings = await getSettings();
     if (settings.paused && !opts.manual) return finishTrigger(t.id, 'dilewati: aplikasi sedang di-pause');
     if (!a.enabled) return finishTrigger(t.id, 'dilewati: akun nonaktif');
-    const used = await sentLast24h(a.id);
-    if (used >= a.dailyLimit) return finishTrigger(t.id, `dilewati: batas harian akun tercapai (${used}/${a.dailyLimit})`);
-    const quota = Math.min(t.actionsPerRun, a.dailyLimit - used);
+    if (!a.replizAccountId) return finishTrigger(t.id, 'dilewati: akun belum terhubung ke Repliz');
+    const q = await remainingQuota(a);
+    if (!q.left) return finishTrigger(t.id, `dilewati: ${q.note}`);
+    const quota = Math.min(t.actionsPerRun, q.left);
 
     const { posts, errors } = await collectCandidates(t, a);
-    for (const e of errors) await log('warn', src, `Scrape: ${e}`);
+    for (const e of errors) await log('warn', src, `Pencarian: ${e}`);
     const candidates = posts.filter((p) => p.ok);
     await log('info', src, `${posts.length} postingan ditemukan, ${candidates.length} lolos filter, target ${quota} komentar`);
     if (!candidates.length) return finishTrigger(t.id, `0 kandidat dari ${posts.length} postingan`);
 
     const provider = await resolveProvider(t.providerId, a.providerId);
     const persona = await effectivePersona(a.id);
-    const poster = posterFor(a);
     let sent = 0; let skipped = 0; let failed = 0; let dry = 0;
 
     for (const post of candidates) {
@@ -136,7 +184,7 @@ export async function runTrigger(triggerId: number, opts: { manual?: boolean } =
       if ((await getSettings()).paused && !opts.manual) break;
 
       const base: Omit<NewAction, 'status'> = {
-        accountId: a.id, triggerId: t.id, kind: 'comment', targetCode: post.code, targetId: post.fbid || post.pk,
+        accountId: a.id, triggerId: t.id, kind: 'comment', targetCode: post.code, targetId: post.contentId,
         targetUser: post.username, targetText: post.text.slice(0, 1000), targetUrl: post.url, metrics: metricsOf(post),
       };
       let text: string;
@@ -161,16 +209,16 @@ export async function runTrigger(triggerId: number, opts: { manual?: boolean } =
       }
       if (sent > 0) await sleep(randomDelayMs(settings));
       try {
-        const res = await poster.reply(a, { fbid: post.fbid, pk: post.pk, url: post.url, code: post.code }, text);
+        const res = await createComment(post.contentId!, { accountId: a.replizAccountId, text });
         sent++;
-        await recordAction({ ...base, replyText: text, status: 'sent', resultId: res.resultId });
+        await recordAction({ ...base, replyText: text, status: 'sent', resultId: res.commentId || null });
         await log('info', src, `Komentar terkirim ke @${post.username} (${post.url}): ${text}`);
       } catch (e) {
         failed++;
         const m = (e as Error).message;
         await recordAction({ ...base, replyText: text, status: 'failed', error: m });
         await log('error', src, `Gagal kirim ke ${post.url}: ${m}`);
-        if (isAuthError(m)) { await updateAccount(a.id, { statusNote: `ERROR: ${m.slice(0, 200)}` }); break; }
+        if (isFatal(e)) { await updateAccount(a.id, { statusNote: `ERROR: ${m.slice(0, 200)}` }); break; }
       }
     }
     return finishTrigger(t.id, `terkirim ${sent}${dry ? `, dry-run ${dry}` : ''}, skip ${skipped}, gagal ${failed}`);
@@ -178,70 +226,7 @@ export async function runTrigger(triggerId: number, opts: { manual?: boolean } =
   return r.busy ? { status: 'akun sedang menjalankan pekerjaan lain, coba lagi nanti' } : r.value;
 }
 
-// ---------- balas komentar ----------
-type Incoming = Pick<Post, 'username' | 'text' | 'takenAt'> & Partial<Post> & {
-  code: string; apiId?: string; url: string; context: { label: string; parentText?: string };
-};
-
-async function collectIncomingApi(a: ThreadsAccount): Promise<Incoming[]> {
-  const me = a.username.toLowerCase();
-  const maxAge = a.replyMaxAgeHours * 3600;
-  const items: Incoming[] = [];
-  const push = (r: apiPoster.ApiPost, label: string, parentText?: string) => {
-    const ts = r.timestamp ? Math.floor(new Date(r.timestamp).getTime() / 1000) : nowSec();
-    if (nowSec() - ts > maxAge) return;
-    if (r.is_reply_owned_by_me || (r.username || '').toLowerCase() === me) return;
-    if (r.hide_status && r.hide_status !== 'NOT_HUSHED') return;
-    items.push({ code: r.id, apiId: r.id, username: r.username || 'seseorang', text: r.text || '', takenAt: ts, url: r.permalink || '', context: { label, parentText } });
-  };
-  if (a.replyScope !== 'my_comments') {
-    for (const p of await apiPoster.listOwnPosts(a, 8)) {
-      for (const r of await apiPoster.listReplies(a, p.id)) push(r, 'balasan orang di postingan kamu', p.text);
-    }
-  }
-  if (a.replyScope !== 'own_posts') {
-    const mine = await db.select({ resultId: actions.resultId, replyText: actions.replyText }).from(actions).where(and(
-      eq(actions.accountId, a.id), eq(actions.status, 'sent'), isNotNull(actions.resultId),
-      gte(actions.createdAt, new Date(Date.now() - 7 * 86400_000)),
-    )).orderBy(desc(actions.id)).limit(30);
-    for (const m of mine) {
-      try {
-        for (const r of await apiPoster.listReplies(a, m.resultId!)) push(r, 'balasan orang untuk komentar kamu', m.replyText || '');
-      } catch { /* komentar mungkin sudah dihapus */ }
-    }
-  }
-  return items;
-}
-
-async function collectIncomingBrowser(a: ThreadsAccount): Promise<Incoming[]> {
-  const me = a.username.toLowerCase();
-  if (!me) throw new Error('Isi username akun (tanpa @) agar bisa mencari komentar masuk');
-  const opts = scrapeOpts(a);
-  const maxAge = a.replyMaxAgeHours * 3600;
-  const roots: Array<{ p: Post; label: string }> = [];
-  if (a.replyScope !== 'my_comments') {
-    for (const p of (await fetchProfilePosts(me, opts)).filter((x) => !x.isReply).slice(0, 5)) roots.push({ p, label: 'balasan orang di postingan kamu' });
-  }
-  if (a.replyScope !== 'own_posts') {
-    for (const p of (await fetchProfileReplies(me, opts)).slice(0, 8)) roots.push({ p, label: 'balasan orang untuk komentar kamu' });
-  }
-  const items: Incoming[] = [];
-  for (const { p, label } of roots) {
-    if (p.replies === 0) continue;
-    try {
-      const page = await fetchPostPage(me, p.code, opts);
-      for (const r of page.posts) {
-        if (!r.isReply || (r.replyToUser || '').toLowerCase() !== me || r.username.toLowerCase() === me) continue;
-        if (nowSec() - r.takenAt > maxAge) continue;
-        items.push({ ...r, context: { label, parentText: p.text } });
-      }
-    } catch (e) {
-      await log('warn', `akun:${a.name}`, `Gagal membuka ${p.url}: ${(e as Error).message}`);
-    }
-  }
-  return items;
-}
-
+// ---------- balas komentar di postingan sendiri (antrean Repliz) ----------
 export async function runReplyJob(accountId: number, opts: { manual?: boolean } = {}): Promise<{ status: string }> {
   const a = await getAccount(accountId);
   if (!a) throw new Error('Akun tidak ditemukan');
@@ -252,34 +237,45 @@ export async function runReplyJob(accountId: number, opts: { manual?: boolean } 
     const settings = await getSettings();
     if (settings.paused && !opts.manual) return finish('dilewati: aplikasi di-pause');
     if (!a.enabled) return finish('dilewati: akun nonaktif');
-    const used = await sentLast24h(a.id);
-    if (used >= a.dailyLimit) return finish(`dilewati: batas harian tercapai (${used}/${a.dailyLimit})`);
-    const quota = Math.min(a.replyPerRun, a.dailyLimit - used);
+    if (!a.replizAccountId) return finish('dilewati: akun belum terhubung ke Repliz');
+    const q = await remainingQuota(a);
+    if (!q.left) return finish(`dilewati: ${q.note}`);
+    const quota = Math.min(a.replyPerRun, q.left);
 
-    const incoming = a.method === 'browser' ? await collectIncomingBrowser(a) : await collectIncomingApi(a);
-    const fresh: Incoming[] = [];
-    for (const it of incoming) {
-      if (!(await hasActedOn(a.id, it.code)) && (await failedAttempts(a.id, it.code)) < 2) fresh.push(it);
+    const res = await listComments({ accountIds: [a.replizAccountId], status: 'pending', limit: 50 });
+    const me = a.username.toLowerCase();
+    const maxAge = a.replyMaxAgeHours * 3600;
+    const fresh: ReplizQueueComment[] = [];
+    for (const c of res.docs || []) {
+      const ts = c.comment.createdAt ? Math.floor(new Date(c.comment.createdAt).getTime() / 1000) : nowSec();
+      if (nowSec() - ts > maxAge) continue;
+      if (me && (c.comment.owner?.name || '').toLowerCase() === me) continue;
+      if (await hasActedOn(a.id, c._id) || await failedAttempts(a.id, c._id) >= 2) continue;
+      fresh.push(c);
     }
-    fresh.sort((x, y) => x.takenAt - y.takenAt);
-    await log('info', src, `${incoming.length} komentar masuk, ${fresh.length} belum dibalas`);
-    if (!fresh.length) return finish(`tidak ada komentar baru (${incoming.length} dicek)`);
+    fresh.sort((x, y) => String(x.comment.createdAt).localeCompare(String(y.comment.createdAt)));
+    await log('info', src, `${res.docs?.length || 0} komentar pending, ${fresh.length} akan diproses`);
+    if (!fresh.length) return finish(`tidak ada komentar baru (${res.docs?.length || 0} pending dicek)`);
 
     const provider = await resolveProvider(a.providerId);
     const persona = await effectivePersona(a.id);
-    const poster = posterFor(a);
     let sent = 0; let skipped = 0; let failed = 0; let dry = 0;
-    for (const it of fresh) {
+    for (const c of fresh) {
       if (sent + dry >= quota) break;
+      const author = c.comment.owner?.name || 'seseorang';
       const base: Omit<NewAction, 'status'> = {
-        accountId: a.id, triggerId: null, kind: 'reply', targetCode: it.code, targetId: it.apiId || it.fbid || it.pk,
-        targetUser: it.username, targetText: (it.text || '').slice(0, 1000), targetUrl: it.url,
+        accountId: a.id, triggerId: null, kind: 'reply', targetCode: c._id, targetId: c.comment.id,
+        targetUser: author, targetText: (c.comment.text || '').slice(0, 1000), targetUrl: c.content?.url || '',
       };
       let text: string;
       try {
         text = await generateReply({
-          provider, persona, kind: 'reply', context: it.context,
-          post: { likes: 0, replies: 0, reposts: 0, shares: 0, ...it },
+          provider, persona, kind: 'reply',
+          context: { label: 'komentar orang di postingan kamu', parentText: c.content?.description || '' },
+          post: {
+            username: author, text: c.comment.text || '', likes: 0, replies: 0, reposts: 0, shares: 0,
+            takenAt: c.comment.createdAt ? Math.floor(new Date(c.comment.createdAt).getTime() / 1000) : 0,
+          },
           instruction: a.replyInstruction || 'Balas komentar ini dengan ramah dan nyambung dengan isi komentarnya.',
           recentTexts: await recentReplyTexts(a.id),
         });
@@ -290,24 +286,32 @@ export async function runReplyJob(accountId: number, opts: { manual?: boolean } 
       if (a.replyDryRun) {
         dry++;
         await recordAction({ ...base, replyText: text, status: 'dry_run' });
-        await log('info', src, `[DRY RUN] balas @${it.username}: ${text}`);
+        await log('info', src, `[DRY RUN] balas @${author}: ${text}`);
         continue;
       }
       if (sent > 0) await sleep(randomDelayMs(settings));
       try {
-        const res = await poster.reply(a, { apiId: it.apiId, fbid: it.fbid, pk: it.pk, url: it.url, code: it.code }, text);
+        const out = await replyComment(c._id, text);
         sent++;
-        await recordAction({ ...base, replyText: text, status: 'sent', resultId: res.resultId });
-        await log('info', src, `Balasan terkirim ke @${it.username}: ${text}`);
+        await recordAction({ ...base, replyText: text, status: 'sent', resultId: out.commentId || null });
+        await log('info', src, `Balasan terkirim ke @${author}: ${text}`);
       } catch (e) {
         failed++;
         const m = (e as Error).message;
         await recordAction({ ...base, replyText: text, status: 'failed', error: m });
-        await log('error', src, `Gagal balas @${it.username}: ${m}`);
-        if (isAuthError(m)) break;
+        await log('error', src, `Gagal balas @${author}: ${m}`);
+        if (isFatal(e)) break;
       }
     }
     return finish(`terkirim ${sent}${dry ? `, dry-run ${dry}` : ''}, skip ${skipped}, gagal ${failed}`);
   });
   return r.busy ? { status: 'akun sedang menjalankan pekerjaan lain, coba lagi nanti' } : r.value;
+}
+
+/** Dipanggil webhook `comment`: jadwalkan balas komentar akun ini secepatnya. */
+export async function nudgeReplies(replizAccountId: string) {
+  const rows = await db.update(threadsAccounts).set({ nextReplyAt: new Date() })
+    .where(and(eq(threadsAccounts.replizAccountId, replizAccountId), eq(threadsAccounts.replyEnabled, true)))
+    .returning({ id: threadsAccounts.id });
+  return rows.length;
 }

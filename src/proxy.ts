@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSessionCookie } from 'better-auth/cookies';
 
-const PUBLIC = ['/login', '/api/auth', '/api/setup'];
+const PUBLIC = ['/login', '/api/auth', '/api/setup', '/api/webhooks'];
 
 /** Cek cepat (optimistic): tanpa cookie sesi → arahkan ke /login. Validasi sesi sebenarnya di server. */
 export function proxy(request: NextRequest) {

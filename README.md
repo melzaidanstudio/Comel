@@ -2,11 +2,11 @@
 
 Aplikasi pribadi untuk:
 
-1. Mengatur **akun Threads**: **API resmi**, atau **browser** dengan **username + password tersimpan** / cookie
+1. Terhubung ke Threads lewat **[Repliz](https://repliz.com)** sebagai jembatan koneksi (login resmi Threads, tanpa password/cookie)
 2. Mengatur **trigger kata kunci** atau **topic tag**, dengan **filter viralitas** (suka, balasan, repost, share, quote), **filter tag**, dan **filter waktu**
-3. **Scrape** Threads memakai **[Lightpanda](https://github.com/lightpanda-io/browser)** (tanpa login)
-4. Membuat **komentar** otomatis dengan AI di utas yang lolos filter
-5. **Membalas komentar** orang di postingan kamu / di komentar kamu
+3. **Mencari** postingan Threads lewat Repliz (Terbaru/Teratas, rentang tanggal); angka viral diambil **[Lightpanda](https://github.com/lightpanda-io/browser)**
+4. Membuat **komentar** otomatis dengan AI di utas yang lolos filter, dikirim lewat Repliz
+5. **Membalas komentar** orang di postingan kamu (antrean komentar Repliz + webhook real-time)
 6. Kepribadian & pengetahuan AI lewat **`soul.md`** dan **`memory.md`**
 7. AI provider bebas: **9router**, OpenRouter, OpenAI, Claude, Gemini, Groq, DeepSeek, Ollama, atau endpoint OpenAI-compatible lain
 8. **Jam aktif** (default 06:00–22:00), batas harian, jeda per penulis, dry-run, dan tombol **Pause semua**
@@ -20,28 +20,31 @@ Aplikasi pribadi untuk:
 | Database | **PostgreSQL 16** + **Drizzle ORM** (migrasi di `drizzle/`) |
 | Auth dashboard | **better-auth** (email + password, akun admin tunggal) |
 | Penjadwal | Proses **worker** terpisah (`src/worker`), kunci per akun via Postgres advisory lock |
-| Scraping | Lightpanda (`lightpanda fetch`) |
-| Kirim komentar | Threads Graph API, atau Playwright (Chromium / Lightpanda CDP) |
+| Koneksi Threads | **Repliz Public API** (paket Gold) — referensi: [`docs/repliz.md`](docs/repliz.md) |
+| Metrik viral | Lightpanda (`lightpanda fetch` halaman postingan publik) |
 
 ---
 
 ## Cara kerja
 
 ```
- ┌───────────┐ tiap N menit ┌────────────┐ HTML+JSON ┌──────────────────────┐
- │  worker   │ ───────────▶ │ Lightpanda │ ────────▶ │ filter: kata kunci,  │
- │(scheduler)│              │ search/tag │           │ tag, viral, waktu    │
- └───────────┘              └────────────┘           └──────────┬───────────┘
-                                                                ▼
- ┌────────────────────┐   teks komentar   ┌──────────────────────────────────┐
- │ kirim:             │ ◀──────────────── │ AI (soul.md + memory.md +        │
- │ • Threads API      │                   │ instruksi trigger + postingan)   │
- │ • browser + sesi   │                   │ → boleh jawab SKIP bila tak cocok│
- └────────────────────┘                   └──────────────────────────────────┘
+ ┌───────────┐ tiap N menit ┌──────────────────┐  postingan  ┌──────────────────────┐
+ │  worker   │ ───────────▶ │ Repliz Research  │ ──────────▶ │ filter: kata kunci,  │
+ │(scheduler)│              │ (kata kunci/tag) │             │ tag, waktu, penulis  │
+ └───────────┘              └──────────────────┘             └──────────┬───────────┘
+                                                                        ▼ (bila ada syarat viral)
+ ┌────────────────────────┐  teks komentar  ┌──────────────────┐  ┌───────────────────────┐
+ │ kirim lewat Repliz     │ ◀────────────── │ AI (soul.md +    │◀─│ Lightpanda: like,     │
+ │ POST /content/{id}/    │                 │ memory.md + ins- │  │ balasan, share dari   │
+ │ comment                │                 │ truksi) / SKIP   │  │ halaman postingan     │
+ └────────────────────────┘                 └──────────────────┘  └───────────────────────┘
+
+ Komentar masuk di postingan sendiri: webhook Repliz `comment` → worker → AI → balas lewat Repliz
 ```
 
-- Scraping **tanpa login** (pencarian, halaman tag, profil, dan balasan tampil publik), jadi akun tidak dipakai untuk scrape.
-- Postingan yang sudah diproses tidak dikomentari lagi; ada **jeda per penulis** (default 24 jam) dan **batas harian per akun** (default 50).
+- Akun Threads dihubungkan **di dashboard Repliz** (login resmi Threads). Comel hanya menyimpan Access Key & Secret Key Repliz (terenkripsi).
+- Hasil pencarian Repliz **tidak memuat angka like/balasan/share**; bila trigger punya syarat viral, angka diambil Lightpanda untuk sejumlah kandidat teratas (default 12 per putaran).
+- Postingan yang sudah diproses tidak dikomentari lagi. Batas aman default mengikuti pacing Repliz: **10/jam, 50/hari per akun, jeda 3–10 menit, orang yang sama tidak dikomentari lagi selama 7 hari**.
 - **Jam aktif** default **06:00–22:00** (diubah di Pengaturan); tiap trigger/akun bisa *Ikuti default*, *Atur sendiri*, atau *24 jam*.
 
 ---
@@ -79,7 +82,7 @@ docker compose logs -f web worker
 Lalu buka `https://comel.<ip-dengan-minus>.sslip.io` di browser HP → **buat akun admin** dengan email yang sama (hanya `ADMIN_EMAIL` yang diizinkan; setelah admin dibuat, pendaftaran ditutup).
 
 > Hostinger: bila firewall di hPanel (VPS → Security → Firewall) aktif, tambahkan izin port 80 & 443.
-> Simpan `.env` baik-baik — `SECRET_KEY` mengenkripsi password akun Threads; bila berubah, password tersimpan harus diisi ulang.
+> Simpan `.env` baik-baik — `SECRET_KEY` mengenkripsi Secret Key Repliz yang disimpan dari dashboard; bila berubah, kunci harus diisi ulang di Pengaturan.
 
 | Service | Fungsi |
 |---|---|
@@ -120,11 +123,13 @@ npm run worker     # penjadwal (terminal lain)
 
 ## Langkah setelah instalasi
 
-1. **AI Provider** → *Provider baru* → pilih preset (mis. 9router) → isi API key & model → **Tes**.
-2. **Soul & Memory** → tulis kepribadian (`soul.md`) dan fakta (`memory.md`).
-3. **Akun Threads** → tambah akun → **Login sekarang** / **Tes koneksi**.
-4. **Trigger** → buat trigger (Dry run ✓) → **Preview** → **Jalankan** → matikan Dry run → aktifkan.
-5. (Opsional) Di akun, aktifkan **Balas komentar otomatis**.
+1. **Pengaturan → Koneksi Repliz**: tempel **Access Key** & **Secret Key** (dashboard Repliz → Settings → Public API) → **Tes koneksi** (harus paket **Gold**).
+2. Di **dashboard Repliz**: Account Integration → Connect account → **Threads** (login & izinkan).
+3. **Akun Threads** → **Tambah dari Repliz** → pilih akun → atur batas & balas komentar.
+4. **AI Provider** → *Provider baru* → pilih preset (mis. 9router) → isi API key & model → **Tes**.
+5. **Soul & Memory** → tulis kepribadian (`soul.md`) dan fakta (`memory.md`).
+6. **Trigger** → buat trigger (Dry run ✓) → **Preview** → **Jalankan** → matikan Dry run → aktifkan.
+7. (Disarankan) **Webhook**: salin URL & token dari Pengaturan ke dashboard Repliz → Settings → Webhook, agar komentar baru langsung dibalas.
 
 ---
 
@@ -159,40 +164,24 @@ Tidak peka huruf besar/kecil; nama topic tag ikut dicocokkan.
 - **Topic tag (wajib salah satu)** — mis. `Kuliner Bogor, Food Threads`.
 - **Cara mencocokkan** — *Sama persis* (`Kuliner Bogor` = `kulinerbogor`) atau *Mengandung kata* (`bogor` cocok dengan *Kuliner Bogor*, *Loker Bogor*).
 - **Tag yang dihindari** — mis. `Loker Bogor, Politik`.
-- **Cari lewat halaman topic tag** (*trigger by tag*) — kata pencarian boleh kosong.
+- **Cari berdasarkan topic tag** (*trigger by tag*, Repliz `mode=TAG`) — kata pencarian boleh kosong.
 - Tag yang pernah terlihat muncul sebagai saran (★ = tag komunitas).
 
-> Tanpa login, halaman tag Threads berisi pencarian nama tag (tag campuran), jadi Comel selalu menyaring ulang per tag.
+> Comel tetap menyaring ulang tag tiap postingan (sama persis / mengandung kata) setelah hasil pencarian datang.
 
 ---
 
-## Login akun Threads
+## Koneksi Repliz
 
-### A. API resmi (stabil, risiko rendah)
+Repliz adalah jembatan Comel ke Threads: akun Threads dihubungkan lewat login resmi Threads di dashboard Repliz, lalu Comel memakai **Repliz Public API**. Referensi lengkap API: [`docs/repliz.md`](docs/repliz.md).
 
-1. <https://developers.facebook.com/apps> → **Create app** → use case **Access the Threads API**.
-2. Izin: `threads_basic`, `threads_content_publish`, `threads_manage_replies`, `threads_read_replies`, dan **`threads_keyword_search`** atau `threads_manage_mentions` (wajib untuk membalas postingan **orang lain**).
-3. **App roles → Roles → Threads Tester** → terima undangan di Threads (*Pengaturan → Akun → Izin situs web*).
-4. Buat token (User Token Generator) lalu tukar ke long-lived (60 hari):
-   ```bash
-   curl "https://graph.threads.net/access_token?grant_type=th_exchange_token&client_secret=APP_SECRET&access_token=SHORT_TOKEN"
-   ```
-5. Tempel di akun (metode **API resmi**) → **Tes koneksi**. Token diperbarui otomatis tiap minggu.
+- **Paket**: pencarian (Research), komentar ke postingan orang lain (Content), dan Keyword Watch lewat API butuh **Gold**. Paket lain mendapat error `402`.
+- **Kunci**: isi di *Pengaturan → Koneksi Repliz* (Secret Key disimpan terenkripsi dengan `SECRET_KEY`), atau lewat `.env`:
+  `REPLIZ_ACCESS_KEY`, `REPLIZ_SECRET_KEY` (bila diisi, dashboard tidak bisa mengubahnya).
+- **Akun**: *Akun Threads → Tambah dari Repliz*. *Sinkron dari Repliz* memperbarui username, foto, dan status koneksi. Akun yang terputus harus di-*Reconnect* di dashboard Repliz.
+- **Webhook**: URL `https://<domain-anda>/api/webhooks/repliz` + token dari Pengaturan (atau `REPLIZ_WEBHOOK_TOKEN`). Repliz mengirim token di header `x-token`. Event `comment` membuat worker langsung membalas komentar di akun itu; tanpa webhook, komentar dicek sesuai interval akun.
 
-> Untuk postingan hasil scrape, `fbid` dipakai sebagai `reply_to_id` (fallback `pk`). Belum teruji end-to-end; bila gagal, cek pesan error di **Riwayat**.
-
-### B. Browser — username + password tersimpan
-
-1. Akun → metode **Browser** → isi **username/email/no HP** dan **password** (terenkripsi AES-256-GCM dengan `SECRET_KEY`).
-2. (Opsional) **Kunci 2FA authenticator** → kode 2FA dibuat otomatis. 2FA SMS: kode diminta di dashboard (berlaku 5 menit).
-3. **Login sekarang** → Lightpanda membuka threads.com/login dan menyimpan sesi.
-4. Sesi habis → login ulang otomatis (maks 1×/30 menit). Password salah / checkpoint → login otomatis **dijeda** supaya akun tidak terkunci; setujui "Ini saya" di HP lalu *Login sekarang*.
-
-Alternatif: tempel **cookie** (ekstensi Cookie-Editor → Export JSON).
-
-⚠️ Metode browser melanggar Ketentuan Meta tentang akses otomatis dan lebih rawan checkpoint/banned. Bila tombol tidak ditemukan, screenshot disimpan dan bisa dibuka dari **Riwayat**.
-
----
+> Mengomentari orang asing dalam jumlah besar tetap bisa dianggap spam oleh Threads. Mulai dengan Dry run dan batas kecil.
 
 ## AI Provider — 9router
 
@@ -208,7 +197,7 @@ Disimpan di database (tabel `personas`), bisa di-override per akun. AI menerima 
 
 ## Balas komentar otomatis
 
-Per akun: *Postingan saya*, *Komentar saya*, atau keduanya; interval, maks per putaran, umur komentar, jam aktif, instruksi, dry-run.
+Per akun: komentar orang di **postingan akun itu** diambil dari antrean komentar Repliz (`status=pending`) dan dibalas lewat Repliz. Atur interval, maks per putaran, umur komentar maksimal, jam aktif, instruksi, dan dry-run. Dengan webhook, komentar baru langsung diproses.
 
 ---
 
@@ -226,15 +215,16 @@ src/
   lib/
     db/               # schema Drizzle, koneksi, migrasi
     auth.ts           # better-auth
-    engine.ts         # scrape → filter → AI → kirim
+    engine.ts         # cari (Repliz) → filter → metrik (Lightpanda) → AI → kirim (Repliz)
+    repliz.ts         # klien Repliz Public API
     scheduler.ts      # penjadwal (dipakai worker)
-    scraper.ts        # Lightpanda
+    scraper.ts        # Lightpanda (metrik viral dari halaman postingan)
     filters.ts        # ekspresi kata kunci, viral, tag, waktu
     llm.ts            # klien AI + preset
-    posters/          # Threads API & browser (Playwright)
   worker/index.ts     # proses penjadwal
   proxy.ts            # cek sesi cepat (Next.js 16 proxy)
 drizzle/              # file migrasi SQL
+docs/repliz.md        # referensi Repliz API
 ```
 
 ## Troubleshooting
@@ -243,8 +233,12 @@ drizzle/              # file migrasi SQL
 |---|---|
 | Tidak bisa masuk dashboard | `BETTER_AUTH_URL` harus sama persis dengan alamat yang dibuka (https://…) |
 | `Lightpanda tidak ditemukan` | Image Docker sudah menyertakan; lokal: install lalu set `LIGHTPANDA_BIN` |
-| Preview 0 postingan | Coba kata/tag lain; lihat Log di Dasbor |
-| `Threads API … reply_to_id` | App butuh `threads_keyword_search`/`threads_manage_mentions` |
-| `Login gagal: password salah` / checkpoint | Perbaiki password / setujui di HP → *Login sekarang* |
-| `Tombol balas/Post tidak ditemukan` | Tampilan Threads berubah; lihat screenshot di Riwayat |
+| `Repliz belum terhubung` | Isi Access Key & Secret Key di Pengaturan → Koneksi Repliz |
+| `Kunci Repliz ditolak (401)` | Kunci salah atau Secret Key di-refresh di Repliz; isi ulang |
+| `Paket Repliz … (402)` | API itu butuh paket Gold |
+| `Batas Repliz tercapai (429)` | Tunggu; kurangi jumlah per jam |
+| Akun "terputus di Repliz" | Dashboard Repliz → Account Integration → Reconnect, lalu *Sinkron dari Repliz* |
+| Preview 0 postingan | Coba kata/tag lain atau longgarkan filter; lihat Log di Dasbor |
+| "metrik belum dicek" | Naikkan *Maks postingan dicek metrik viral* di Pengaturan |
+| Webhook gagal disimpan di Repliz | URL harus HTTPS publik (profil `https`/Caddy) dan token sama persis |
 | Lupa password admin | `docker compose exec db psql -U comel -c 'delete from "user";'` lalu buat admin baru di /login |

@@ -19,6 +19,10 @@ export type Post = {
   url: string;
   mediaType?: number;
   tag: PostTag | null;
+  /** ID postingan di Repliz/Threads API — dipakai untuk berkomentar lewat Repliz. */
+  contentId?: string;
+  /** true bila like/balasan/share sudah diambil (Lightpanda); hasil Repliz tidak memuat metrik. */
+  metricsChecked?: boolean;
 };
 
 export type EvaluatedPost = Post & { ok: boolean; reason: string; query?: string };
@@ -29,6 +33,7 @@ export type AppSettings = {
   activeEnd: string;
   paused: boolean;
   delayMinSeconds: number;
+  metricLookupMax: number;
   delayMaxSeconds: number;
   maxChars: number;
   skipSensitive: boolean;

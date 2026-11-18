@@ -7,8 +7,9 @@ const DEFAULT_SETTINGS: AppSettings = {
   activeStart: '06:00', // jam aktif default
   activeEnd: '22:00',
   paused: false, // tombol darurat
-  delayMinSeconds: 25, // jeda antar komentar dalam satu putaran
-  delayMaxSeconds: 70,
+  delayMinSeconds: 180, // jeda antar komentar 3–10 menit (sama dengan pacing Repliz)
+  delayMaxSeconds: 600,
+  metricLookupMax: 12, // maks postingan yang dicek metrik viralnya via Lightpanda per putaran
   maxChars: 280, // Threads maks 500
   skipSensitive: true,
 };

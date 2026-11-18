@@ -345,6 +345,8 @@ Payload umum: `{ platform, type, accountId, data, raw }` (`raw` = payload asli p
 
 ## 9. Pemetaan ke fitur Comel
 
+> **Status (18 Nov 2026): MVP sudah diimplementasikan** — koneksi via kunci Repliz (Pengaturan), akun dari `GET /public/account`, trigger lewat Research + filter + metrik Lightpanda (hybrid) + Create Comment, balas komentar dari antrean `GET /public/comment?status=pending` + Reply Comment, webhook `POST /api/webhooks/repliz` (x-token) yang memicu balas komentar. Kode: `src/lib/repliz.ts`, `src/lib/engine.ts`. Belum: Keyword Watch, balas komentar pada komentar kita di postingan orang lain.
+
 | Fitur Comel sekarang | Implementasi sekarang | Dengan Repliz | Catatan |
 |---|---|---|---|
 | Login akun Threads | API token Meta sendiri / cookie / password (Lightpanda) | Akun Threads dihubungkan sekali di dashboard Repliz (OAuth resmi). Comel cukup menyimpan `REPLIZ_ACCESS_KEY` + `REPLIZ_SECRET_KEY` dan memilih `accountId` dari `GET /public/account?types[]=threads` | Menghapus kebutuhan password/cookie/2FA & risiko checkpoint |

@@ -10,6 +10,11 @@ export type TagJ = Json<Tag>;
 export type ActionRow = Json<Action> & { accountName: string | null; triggerName: string | null };
 export type LogRow = { id: number; ts: string; level: string; source: string; message: string };
 export type Stats = { sent24: number; failed24: number; skipped24: number; accounts: number; triggers: number; paused: boolean };
+export type ReplizAccountOption = { id: string; name: string; username: string; picture: string; isConnected: boolean; added: boolean };
+export type ReplizStatus = {
+  source: 'env' | 'dashboard' | 'none'; hasKeys: boolean; accessKeyMasked: string;
+  webhookToken: string; webhookTokenFromEnv: boolean; webhookPath: string;
+};
 export type Preview = { queries: string[]; posts: EvaluatedPost[]; errors: string[] };
 export type { AppSettings, EvaluatedPost };
 
