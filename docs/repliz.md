@@ -131,6 +131,11 @@ Kirim sebagai `accountIds[]=ID1&accountIds[]=ID2` (gaya Axios), juga `types[]=th
 - **Knowledge**: basis pengetahuan untuk AI reply (sumber `text`, `faq`, `url`, `file`), dipakai lewat `knowledgeIds` (maks 5).
 - **Report**: log setiap aksi otomasi (`type`: delete/reply/like/message/chat/story/mention, `status` success/error), bisa di-retry.
 
+> **Diverifikasi dengan API asli (18 Nov 2026):** `GET /public/research/threads/content/search` → `{ docs, nextToken }`, ±11 postingan per halaman.
+> Field yang muncul: `id, title, description, topic, type (text|album|video), owner{id,name,picture}, medias, url, createdAt`.
+> `url` berbentuk `https://www.threads.com/@user/post/CODE`; `owner.id` kosong, `owner.name` = username; `topic` = nama topic tag (bisa kosong);
+> tidak ada field `reply` dan tidak ada metrik engagement. `GET /public/me/addon` → `{ account, operator, twitter, storage }`.
+
 ### Objek konten (dipakai Research, Content, Keyword Watch, webhook)
 
 ```jsonc
