@@ -25,12 +25,25 @@ type ReplizConnection = {
   source: 'env' | 'dashboard' | 'none';
 };
 
-async function readStored(): Promise<Record<string, string>> {
-  const rows = await db.select().from(settings).where(inArray(settings.key, Object.values(KEY)));
-  return Object.fromEntries(rows.map((r) => [r.key, typeof r.value === 'string' ? r.value : '']));
+/**
+ * Nilai di kolom jsonb `settings.value`. Disimpan sebagai { v: "..." } karena drizzle mem-parse
+ * string jsonb dengan JSON.parse — Access Key berupa angka (mis. "8723985588") akan kembali
+ * sebagai number. Format lama (string/number polos) tetap dibaca.
+ */
+export function fromStored(value: unknown): string {
+  if (value && typeof value === 'object' && typeof (value as { v?: unknown }).v === 'string') return (value as { v: string }).v;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'bigint') return String(value);
+  return '';
 }
 
-async function store(key: string, value: string) {
+async function readStored(): Promise<Record<string, string>> {
+  const rows = await db.select().from(settings).where(inArray(settings.key, Object.values(KEY)));
+  return Object.fromEntries(rows.map((r) => [r.key, fromStored(r.value)]));
+}
+
+async function store(key: string, v: string) {
+  const value = { v };
   await db.insert(settings).values({ key, value }).onConflictDoUpdate({ target: settings.key, set: { value } });
 }
 

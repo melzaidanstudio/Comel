@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { contentToPost, missingKeysMessage, normalizeKeys } from '../src/lib/repliz';
+import { contentToPost, fromStored, missingKeysMessage, normalizeKeys } from '../src/lib/repliz';
 import { checkPost, hasMetricFilter } from '../src/lib/filters';
 
 test('contentToPost: objek konten Repliz → Post', () => {
@@ -55,4 +55,11 @@ test('normalizeKeys: format AccessKey:SecretKey di satu kolom dipecah', () => {
 test('missingKeysMessage menyebut kunci yang kosong', () => {
   assert.match(missingKeysMessage({ accessKey: 'AK', secretKey: '' }), /Secret Key belum tersimpan/);
   assert.equal(missingKeysMessage({ accessKey: 'AK', secretKey: 'SK' }), '');
+});
+
+test('fromStored: Access Key angka tetap string', () => {
+  assert.equal(fromStored({ v: '8723985588' }), '8723985588');
+  assert.equal(fromStored(8723985588), '8723985588'); // format lama: drizzle mem-parse "8723985588" jadi number
+  assert.equal(fromStored('v1:abc:def:ghi'), 'v1:abc:def:ghi');
+  assert.equal(fromStored(null), '');
 });
