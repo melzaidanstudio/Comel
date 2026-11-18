@@ -158,7 +158,11 @@ function PreviewDialog({ t, data, onClose }: { t: TriggerJ; data: Preview; onClo
                     <p className="line-clamp-3 text-sm">{p.text}</p>
                     {gen[p.code] ? <p className="mt-1 rounded-md bg-sky-500/10 p-2 text-sm"><b>AI:</b> {gen[p.code]}</p> : null}
                   </TableCell>
-                  <TableCell className="whitespace-nowrap font-mono text-xs">❤ {num(p.likes)}<br />💬 {num(p.replies)}<br />🔁 {num(p.reposts)}<br />↗ {num(p.shares)}</TableCell>
+                  <TableCell className="whitespace-nowrap font-mono text-xs">
+                    {p.metricsChecked
+                      ? <>❤ {num(p.likes)}<br />💬 {num(p.replies)}<br />🔁 {num(p.reposts)}<br />↗ {num(p.shares)}</>
+                      : <span className="font-sans text-muted-foreground" title="Repliz tidak memberi angka like/balasan/share; dicek via Lightpanda hanya bila trigger punya syarat viral dan postingan lolos filter lain">— belum dicek</span>}
+                  </TableCell>
                   <TableCell>
                     <Button size="sm" variant="outline" disabled={busy === p.code} onClick={() => testGen(p)}>
                       <Wand2 />{busy === p.code ? '…' : 'Tes komentar'}
