@@ -2,7 +2,7 @@
 
 Motion ads / explainer Comel, tema tropis segar, 9:16 (1080×1920), 90 detik, VO Speko (Gemini TTS) suara "Autonoe", gaya ceria.
 
-**Status:** storyboard disetujui; VO Speko "Autonoe" dibuat dan video 90 detik dirender.
+**Status:** storyboard disetujui; VO Speko "Autonoe" (Naskah 3 FINAL) dibuat dan video 90 detik dirender.
 
 | File | Isi |
 |---|---|

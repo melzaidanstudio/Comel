@@ -20,13 +20,14 @@ const TARGET = 90, HOLD = 2.0, LEAD = 0.35;
 // Kata pembuka tiap adegan (huruf kecil, dicari berurutan di teks VO)
 const CUES = [
   ['S01', 'orang di kotamu'], ['S02', 'yang jawab'], ['S03', 'ini nyata'], ['S04', 'satu pertanyaan'],
-  ['S05', 'satu lagi'], ['S06', 'penanyanya'], ['S07', 'tapi kamu'], ['S08', 'comel yang mantengin'],
-  ['S09', 'atur syaratnya'], ['S10', 'kata yang kamu hindari'], ['S11', 'comel menulis'], ['S12', 'bawaannya'],
-  ['S13', 'contoh nyata:'], ['S14', 'belum yakin'], ['S15', 'telat lima jam'],
+  ['S05', 'satu lagi'], ['S06', 'yang menjawab dengan'], ['S07', 'tapi kamu'], ['S08', 'comel yang mantengin'],
+  ['S09', 'atur syaratnya'], ['S10', 'postingan berisi'], ['S11', 'comel menulis'], ['S12', 'orang yang sama'],
+  ['S13', 'contoh nyata:'], ['S14', 'takut langsung'], ['S15', 'telat lima jam'], ['S15B', 'tiap hari ditunda'],
   ['S16', 'uji dulu, kirim'], ['S17', 'pertanyaan berikutnya'],
 ];
 // Jeda tambahan hanya di pergantian babak
 const GAP_AT = ['S03', 'S07', 'S13', 'S16', 'S17'];
+// (S15B ada di naskah final: "Tiap hari ditunda…")
 
 function timelineFromVO() {
   const { alignment: al } = JSON.parse(readFileSync(join(build, 'alignment.json'), 'utf8'));
@@ -47,7 +48,10 @@ function timelineFromVO() {
 // Alternatif: build/cues.json (waktu kata dari transkripsi, mis. VO Speko yang tidak memberi alignment)
 function timelineFromCues() {
   const c = JSON.parse(readFileSync(join(build, 'cues.json'), 'utf8'));
-  return finishTimeline(c.cues, c.voEnd);
+  const k = c.tempo || 1; // VO dipercepat k× (atempo, nada tetap) agar muat 90 dtk
+  const raw = {};
+  for (const [id, v] of Object.entries(c.cues)) raw[id] = { at: v.at / k, prevEnd: v.prevEnd / k };
+  return { ...finishTimeline(raw, c.voEnd / k), tempo: k };
 }
 
 function finishTimeline(raw, voEnd) {
@@ -68,7 +72,7 @@ function buildAudio(tl) {
   // vo.mp3 → potong per babak, sisipkan hening, normalisasi; opsional musik dengan ducking
   const segs = [0, ...tl.cuts, null];
   const parts = [];
-  let f = `[0:a]aresample=48000,asplit=${segs.length - 1}${segs.slice(0, -1).map((_, i) => `[s${i}]`).join('')};`;
+  let f = `[0:a]aresample=48000${tl.tempo && tl.tempo !== 1 ? `,atempo=${tl.tempo}` : ''},asplit=${segs.length - 1}${segs.slice(0, -1).map((_, i) => `[s${i}]`).join('')};`;
   segs.slice(0, -1).forEach((a, i) => {
     const b = segs[i + 1];
     f += `[s${i}]atrim=start=${a}${b != null ? `:end=${b}` : ''},asetpts=PTS-STARTPTS,adelay=${Math.round((i === 0 ? LEAD : tl.gap) * 1000)}:all=1[p${i}];`;

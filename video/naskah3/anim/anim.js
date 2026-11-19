@@ -2,7 +2,7 @@
 // Waktu adegan berasal dari window.TIMELINE.anchors (S01..S17, detik) + end; render.mjs mengisinya dari stempel waktu VO.
 
 const DEFAULT_TIMELINE = {
-  anchors: { S01: 0, S02: 2.5, S03: 5, S04: 8, S05: 17, S06: 23, S07: 28, S08: 34, S09: 40, S10: 47, S11: 51, S12: 55, S13: 60, S14: 67, S15: 73, S16: 77, S17: 80 },
+  anchors: { S01: 0, S02: 2.5, S03: 5, S04: 8, S05: 17, S06: 23, S07: 28, S08: 34, S09: 40, S10: 47, S11: 51, S12: 55, S13: 61, S14: 68, S15: 74, S15B: 78, S16: 81, S17: 83 },
   end: 90,
 };
 window.TIMELINE = window.TIMELINE || DEFAULT_TIMELINE;
@@ -240,7 +240,7 @@ layer('S07', 'S08', '', (el) => {
     ${[...Array(12)].map((_, i) => `<line x1="50" y1="8" x2="50" y2="15" stroke="var(--ink)" stroke-width="3" transform="rotate(${i * 30} 50 50)"/>`).join('')}
     <line class="hh" x1="50" y1="50" x2="50" y2="28" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/>
     <line class="mh" x1="50" y1="50" x2="50" y2="16" stroke="var(--alarm)" stroke-width="4" stroke-linecap="round"/></svg>`, 'left:780px;top:600px');
-  o.cap = makeCap(el, [{ text: 'TIAP 15 MENIT' }]);
+  o.cap = makeCap(el, [{ cls: 'md', text: 'TIAP 15 MENIT · 06.00–22.00 = 64×/HARI' }]);
   return o;
 }, (o, lt, d) => {
   capAt(o.cap, lt, 0.3, Infinity);
@@ -269,8 +269,9 @@ layer('S08', 'S09', 's-gain', (el) => {
   o.phone = h('div', 'phone', el);
   o.screen = h('div', 'screen', o.phone);
   o.panda = h('div', 'bigpanda', o.screen, PANDA_BIG);
-  o.field = h('div', 'field', o.screen, ICON.search + '<span class="t"></span><i class="caret"></i>');
+  o.field = h('div', 'field', o.screen, ICON.search + '<span class="t"></span><i class="caret"></i>', 'width:450px;font-size:42px;gap:12px;padding:0 24px');
   o.back = h('div', 'back', o.phone);
+  o.cap = makeCap(el, [{ cls: 'sm', text: 'KATA KUNCI, CONTOH:' }, { text: '“KULINER BOGOR”' }]);
   return o;
 }, (o, lt, d) => {
   const flip = E.inOut(P(lt, 0, 0.7));
@@ -280,9 +281,10 @@ layer('S08', 'S09', 's-gain', (el) => {
   const pp = E.back(P(lt, 0.7, 1.1));
   o.panda.style.transform = `scale(${pp})`;
   show(o.field, E.out(P(lt, 1.1, 1.4)));
-  const word = 'Bogor';
-  const tStart = d * 0.5;
-  const nChars = Math.floor(clamp((lt - tStart) / 0.12, 0, word.length));
+  const word = 'kuliner bogor';
+  const tStart = d * 0.42;
+  const nChars = Math.floor(clamp((lt - tStart) / 0.08, 0, word.length));
+  capAt(o.cap, lt, tStart, Infinity);
   o.field.querySelector('.t').textContent = word.slice(0, nChars);
   o.field.querySelector('.caret').style.opacity = Math.floor(lt * 2.4) % 2 ? 0 : 1;
 });
@@ -292,15 +294,15 @@ layer('S09', 'S12', 's-gain', (el) => {
   const o = {};
   o.funnel = h('div', 'abs', el, `<svg width="1080" height="520" viewBox="0 0 1080 520"><path class="body" d="M150 70 H930 L630 360 V470 H450 V360 Z" fill="var(--card)" stroke="var(--gain-fg)" stroke-width="8" stroke-linejoin="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/><path class="rim" d="M200 100 H880" stroke="var(--reply)" stroke-width="6" stroke-dasharray="18 14"/></svg>`, 'left:0;top:820px');
   o.body = o.funnel.querySelector('.body');
-  o.kw = h('div', 'chip', el, 'Bogor', 'left:72px;top:700px');
-  o.x = h('div', 'chip x', el, 'loker', 'left:230px;top:696px');
+  o.kw = h('div', 'chip', el, 'kuliner bogor', 'left:72px;top:720px');
+  o.x = h('div', 'chip x', el, 'loker', 'left:400px;top:716px');
   o.cards = [...Array(9)].map(() => { const c = h('div', 'in', el); h('div', 'bar', c); h('div', 'bar', c); return c; });
   o.bad = h('div', 'bad', el, 'loker<i></i>');
   o.reply = h('div', 'reply', el); o.rbars = [0, 1, 2].map(() => h('div', 'bar', o.reply, null, 'width:0'));
   o.caret = h('div', 'abs', o.reply, null, 'right:40px;bottom:30px;width:6px;height:40px;background:#fff');
   o.dot = h('div', 'storeDot', el, ICON.store, 'left:110px;top:1330px');
   o.c1 = makeCap(el, [{ cls: 'md', text: 'CONTOH: &lt; 24 JAM · MIN 5 BALASAN' }]);
-  o.c2 = makeCap(el, [{ cls: 'sm', text: 'KATA YANG KAMU HINDARI, CONTOH:' }, { text: 'LOKER' }]);
+  o.c2 = makeCap(el, [{ cls: 'sm', text: 'POSTINGAN BERISI KATA YANG DIHINDARI, CONTOH “LOKER”:' }, { text: 'DIBUANG' }]);
   return o;
 }, (o, lt, d, A) => {
   const a10 = A('S10'), a11 = A('S11');
@@ -418,7 +420,7 @@ layer('S14', 'S15', 's-offer', (el) => {
   const sent = h('div', '', o.panel, null, 'display:flex;align-items:baseline;justify-content:space-between;border-top:2px solid var(--card-line);padding-top:32px');
   h('span', '', sent, 'TERKIRIM', 'font-family:var(--mono);font-weight:800;font-size:40px;letter-spacing:.1em;color:var(--card-muted)');
   o.zero = h('span', 'big', sent, '0', 'font-size:220px');
-  o.cap = makeCap(el, [{ cls: 'sm', text: 'UJI COBA:' }, { text: '0 TERKIRIM' }]);
+  o.cap = makeCap(el, [{ cls: 'sm', text: 'MODE UJI COBA:' }, { cls: 'md', text: 'DRAF DITULIS · 0 TERKIRIM' }]);
   return o;
 }, (o, lt, d) => {
   const pp = E.out(P(lt, 0, 0.45));
@@ -430,13 +432,13 @@ layer('S14', 'S15', 's-offer', (el) => {
     const p = E.out(P(lt, d * 0.3 + i * 0.35, d * 0.3 + i * 0.35 + 0.4));
     dd.style.transform = `translateX(${(1 - p) * 140}px)`; show(dd, p * (i === 2 ? 0.6 : 1));
   });
-  capAt(o.cap, lt, d * 0.62, Infinity);
+  capAt(o.cap, lt, 0.3, Infinity);
   o.zero.style.transform = `scale(${1 + 0.12 * bump(P(lt, d * 0.75, d * 0.75 + 0.45))})`;
   o.zero.style.transformOrigin = '100% 80%';
 });
 
 // L11 Telat 5 jam: S15
-layer('S15', 'S16', 's-offer', (el) => {
+layer('S15', 'S15B', 's-offer', (el) => {
   const o = {};
   o.glass = h('div', 'abs', el, `<svg width="300" height="460" viewBox="0 0 100 150">
     <path d="M15 5 H85 M15 145 H85" stroke="var(--ink)" stroke-width="6" stroke-linecap="round"/>
@@ -465,13 +467,36 @@ layer('S15', 'S16', 's-offer', (el) => {
   tf(o.you, lerp(-200, 420, yp), 1360); show(o.you, lt > d * 0.6 ? 1 : 0);
 });
 
+// L11b Tiap hari ditunda: S15B (saingan sudah menjawab, kamu masih jauh)
+layer('S15B', 'S16', 's-offer', (el) => {
+  const o = {};
+  o.q = h('div', 'abs', el, '<b style="display:block;font-family:var(--display);font-weight:800;font-size:110px;line-height:.8">?</b><div class="bar" style="margin-top:20px;height:22px"></div><div class="bar" style="margin-top:14px;height:22px;width:70%"></div>',
+    'left:200px;top:780px;width:440px;padding:32px 36px 38px;background:var(--card);color:var(--ink);border-radius:40px 40px 40px 8px;box-shadow:0 20px 50px rgba(0,0,0,.14)');
+  o.riv = h('div', 'storeDot', el, ICON.store, 'left:0;top:0;width:150px;height:150px;background:var(--rival)');
+  o.ans = h('div', 'abs', el, '<div class="bar" style="height:22px;background:rgba(255,255,255,.6)"></div><div class="bar" style="height:22px;width:70%;background:rgba(255,255,255,.6)"></div>',
+    'left:380px;top:1110px;width:520px;padding:28px 32px;display:flex;flex-direction:column;gap:14px;background:var(--rival);border-radius:36px 8px 36px 36px;transform-origin:100% 0');
+  o.you = h('div', 'storeDot', el, ICON.store, 'left:0;top:0;width:130px;height:130px');
+  o.cal = [...Array(4)].map((_, i) => h('div', 'abs', el, null, `left:${300 + i * 110}px;top:1430px;width:86px;height:86px;border-radius:18px;background:var(--card);border:4px solid var(--card-line)`));
+  o.cap = makeCap(el, [{ cls: 'sm', text: 'TIAP HARI DITUNDA:' }, { text: 'SAINGANMU YANG MENJAWAB' }]);
+  return o;
+}, (o, lt, d) => {
+  capAt(o.cap, lt, 0.3, Infinity);
+  show(o.q, E.out(P(lt, 0, 0.35)));
+  const rp = E.out(P(lt, 0.1, 0.6));
+  tf(o.riv, lerp(900, 760, rp), 1000); show(o.riv, rp);
+  const ap = E.back(P(lt, 0.5, 0.9));
+  o.ans.style.transform = `scale(${ap})`; show(o.ans, clamp(ap * 2));
+  tf(o.you, 120, 1410, 0.9); show(o.you, 0.55 * E.out(P(lt, 0.3, 0.7)));
+  o.cal.forEach((c, i) => { const p = P(lt, 0.8 + i * 0.35, 1.0 + i * 0.35); show(c, p); c.style.borderColor = `color-mix(in srgb, var(--alarm) ${Math.round(p * 100)}%, var(--card-line))`; });
+});
+
 // L12 Promo: S16
 layer('S16', 'S17', '', (el) => {
   el.style.background = 'var(--label-bg)';
   const o = {};
   o.lines = ['UJI DULU,', 'KIRIM BELAKANGAN'].map((t, i) => h('span', '', null, t));
   o.box = h('div', 'promo', el); o.lines.forEach((l) => o.box.appendChild(l));
-  o.note = h('div', 'abs', el, 'Pakai kunci AI sendiri', 'left:72px;top:1120px;font-family:var(--body);font-weight:600;font-size:44px;color:var(--ink);padding:10px 22px;border-radius:999px;border:3px solid var(--ink)');
+  o.note = h('div', 'abs', el, '+ BIAYA AI &amp; KONEKSI TERPISAH, DIJELASKAN DI DEMO', 'left:72px;right:120px;top:1120px;font-family:var(--mono);font-weight:700;font-size:30px;line-height:1.35;letter-spacing:.02em;color:var(--ink)');
   return o;
 }, (o, lt) => {
   o.lines.forEach((l, i) => {
