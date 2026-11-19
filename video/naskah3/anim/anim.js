@@ -506,7 +506,7 @@ layer('S17', null, 's-cta', (el) => {
   capAt(o.cap, lt, 0.5, Infinity);
   const bp = E.out(P(lt, 1.0, 1.5));
   o.btn.style.transform = `translateY(${(1 - bp) * 300}px)`; show(o.btn, bp);
-  const press = (d - 2) * 0.62; // sekitar kata “Follow”
+  const press = window.TIMELINE.anchors.FOLLOW != null ? A('FOLLOW') : (d - 2) * 0.62; // kata “Follow”
   const pr = bump(P(lt, press, press + 0.3));
   o.btn.style.transform += ` scale(${1 - 0.06 * pr})`;
   const rp = P(lt, press + 0.1, press + 0.9);

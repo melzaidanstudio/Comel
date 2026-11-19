@@ -120,11 +120,11 @@ a { color: var(--sky); }
 
 <div class="wrap">
 <header>
-  <span class="status">Disetujui · animasi siap, VO menunggu kunci ElevenLabs</span>
+  <span class="status">Disetujui · VO Autonoe & render 90 dtk selesai</span>
   <div class="eyebrow">Comel · motion ads / explainer</div>
   <h1>Naskah 3: “Orang di kotamu lagi nanya”</h1>
   <div class="specs">
-    <span>9:16 · 1080×1920 · 30 fps</span><span>90 detik</span><span>VO ElevenLabs “Cahaya”</span><span>Hook → Story → Pain/Gain → Offer → CTA</span>
+    <span>9:16 · 1080×1920 · 30 fps</span><span>90 detik</span><span>VO Speko “Autonoe” · gaya ceria</span><span>Hook → Story → Pain/Gain → Offer → CTA</span>
   </div>
   <p class="lead">Storyboard 17 adegan. Semua teks layar dan angka disalin persis dari naskah (versi revisi akurasi: kata yang dihindari diisi pengguna, jeda 7 hari adalah bawaan, “0 gagal kirim” dihapus), termasuk label CONTOH NYATA dan CONTOH. Logo comel kecil tampil di pojok kiri atas sejak detik 0. Gaya visual: tropis segar. Teal dan mangga sebagai warna utama, koral sebagai warna “kamu”, teks teal tua; adegan kota di latar terang, Story di teal, Offer di krem mangga, CTA di teal malam.</p>
 </header>
@@ -165,7 +165,7 @@ a { color: var(--sky); }
 
 <section>
   <h2>Adegan</h2>
-  <p class="lead">Timecode perkiraan berdasarkan tempo 2,4–2,6 kata/detik, total 90 detik. Setelah VO jadi, timecode dikunci ke stempel waktu per kata dari ElevenLabs.</p>
+  <p class="lead">Timecode perkiraan berdasarkan tempo 2,4–2,6 kata/detik, total 90 detik. Di video final, timecode dikunci ke stempel waktu per kata dari VO (bisa bergeser beberapa ratus milidetik dari tabel ini).</p>
 
   <div class="act"><h3>Hook</h3><span class="mono">0:00–0:05</span></div>
 
@@ -296,9 +296,9 @@ a { color: var(--sky); }
   <div class="tbl"><table>
     <thead><tr><th>Aset</th><th>Sumber</th><th>Status</th></tr></thead>
     <tbody>
-      <tr><td>Voice-over “Cahaya”, 1 file + stempel waktu per kata</td><td>ElevenLabs (setelah acc), butuh <code>ELEVENLABS_API_KEY</code></td><td>Menunggu acc + kunci API</td></tr>
-      <tr><td>Musik latar ±100 BPM, ceria-ringan, ±90 dtk</td><td>Pustaka bebas royalti dengan lisensi iklan (mis. pustaka audio platform), dipilih pengguna</td><td>Perlu dipilih</td></tr>
-      <tr><td>SFX: pop, whoosh, tick, ding, scratch, klik saklar, pasir, chime, bel kasir, getar ponsel</td><td>Pustaka SFX bebas royalti, atau disintesis</td><td>Perlu dipilih</td></tr>
+      <tr><td>Voice-over “Autonoe” gaya ceria, 1 file + stempel waktu per kata</td><td>Speko (Gemini TTS) + transkripsi Speko</td><td class="ok">Ada</td></tr>
+      <tr><td>Musik latar ±100 BPM, ceria-ringan, ±90 dtk</td><td>Pustaka bebas royalti dengan lisensi iklan, dipilih pengguna</td><td>Belum ada (video final tanpa musik)</td></tr>
+      <tr><td>SFX: pop, whoosh, tick, ding, scratch, klik saklar, pasir, chime, bel kasir, getar ponsel</td><td>Pustaka SFX bebas royalti, atau disintesis</td><td>Belum ada (video final tanpa SFX)</td></tr>
       <tr><td>Peta kota generik</td><td>Digambar ulang (vektor), bukan peta asli</td><td class="ok">Ada</td></tr>
       <tr><td>Kartu postingan tiruan (avatar blur, nama bar)</td><td>Vektor/HTML</td><td class="ok">Ada</td></tr>
       <tr><td>Ikon toko (KAMU/SAINGAN), hati, gelembung balasan, jam, jam pasir, kalender, corong, saklar</td><td>Vektor/HTML</td><td>Sebagian ada; jam pasir & kalender dibuat saat render</td></tr>
@@ -322,13 +322,12 @@ a { color: var(--sky); }
 </section>
 
 <section>
-  <h2>Setelah acc</h2>
+  <h2>Produksi</h2>
   <ol class="steps">
-    <li>Tambahkan <code>ELEVENLABS_API_KEY</code> di pengaturan environment cloud (bukan di chat).</li>
-    <li>Saya cari voice_id “Cahaya” di voice library, lalu buat VO dari teks di <code>video/naskah3/vo.txt</code> (model multibahasa, bahasa Indonesia) beserta stempel waktu per kata.</li>
-    <li>Timecode adegan dikunci ke stempel waktu VO; animasi dibuat di HTML/CSS dari style frame ini.</li>
-    <li>Render frame 1080×1920 @30 fps dengan Chromium, gabung VO + musik + SFX dengan ffmpeg (VO dominan, musik diturunkan saat ada suara, target ±−14 LUFS).</li>
-    <li>Kirim MP4 untuk ditinjau; revisi kecil sebelum versi final.</li>
+    <li>VO dibuat lewat Speko: Gemini TTS, suara Autonoe, instruksi gaya ceria; 87 detik dalam satu kali sintesis agar suaranya konsisten.</li>
+    <li>VO ditranskripsi dengan stempel waktu per kata; awal tiap adegan dikunci ke kata pertamanya, tombol Follow ditekan tepat di kata “Follow”.</li>
+    <li>Jeda kecil di pergantian babak membuat total pas 90 detik; audio dinormalisasi ke −14 LUFS.</li>
+    <li>Animasi HTML/CSS dirender 1080×1920 @30 fps dengan Chromium dan digabung dengan ffmpeg (H.264 + AAC). Belum ada musik latar.</li>
   </ol>
 </section>
 </div>

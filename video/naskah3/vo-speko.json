@@ -1,0 +1,9 @@
+{
+ "keterangan": "Parameter VO final. Dibuat lewat Speko MCP audio.synthesize, lalu audio.transcribe (word_timestamps) untuk build/cues.json.",
+ "intent": { "language": "id", "optimizeFor": "accuracy" },
+ "voice": "Autonoe",
+ "constraints": { "allowedProviders": { "tts": ["google-tts:gemini-3.8-flash-lite-tts"] } },
+ "instructions": "Bacakan sebagai voice-over iklan media sosial berbahasa Indonesia dengan gaya ceria, hangat, dan bersemangat, seperti teman yang antusias berbagi tips. Tempo sedang agak cepat, senyum terdengar dalam suara. Beri jeda singkat antar kalimat. Angka diucapkan jelas. Kata 'Threads', 'Preview', dan 'Follow' diucapkan dalam bahasa Inggris. 'Comel' diucapkan 'ko-mel'.",
+ "text": "isi vo.txt (baris digabung dengan spasi)",
+ "hasil": { "synthesis_id": "46576810-60d9-464a-a1e8-bd33523a83fb", "durasi_detik": 87.04, "format": "WAV 24 kHz mono" }
+}

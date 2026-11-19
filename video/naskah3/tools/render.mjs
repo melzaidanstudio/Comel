@@ -41,12 +41,22 @@ function timelineFromVO() {
     raw[id] = { at: st[i], prevEnd: i > 0 ? en[i - 1] : 0 };
     from = i + phrase.length;
   }
+  return finishTimeline(raw, voEnd);
+}
+
+// Alternatif: build/cues.json (waktu kata dari transkripsi, mis. VO Speko yang tidak memberi alignment)
+function timelineFromCues() {
+  const c = JSON.parse(readFileSync(join(build, 'cues.json'), 'utf8'));
+  return finishTimeline(c.cues, c.voEnd);
+}
+
+function finishTimeline(raw, voEnd) {
   const spare = Math.max(0, TARGET - LEAD - voEnd - HOLD);
   const gap = Math.min(1.5, spare / GAP_AT.length);
   // Potong audio di tengah jeda sebelum tiap babak, sisipkan hening
   const cuts = GAP_AT.map((id) => ({ id, t: (raw[id].prevEnd + raw[id].at) / 2 }));
   const anchors = {};
-  for (const [id] of CUES) {
+  for (const id of Object.keys(raw)) {
     const shift = LEAD + gap * cuts.filter((c) => c.t <= raw[id].at).length;
     anchors[id] = id === 'S01' ? 0 : Math.max(0, raw[id].at + shift - 0.12);
   }
@@ -66,7 +76,8 @@ function buildAudio(tl) {
   });
   f += `${parts.join('')}concat=n=${parts.length}:v=0:a=1,apad=whole_dur=${tl.end}[vo];`;
   const music = arg('music');
-  const inputs = ['-i', join(build, 'vo.mp3')];
+  const voFile = existsSync(join(build, 'vo.wav')) ? join(build, 'vo.wav') : join(build, 'vo.mp3');
+  const inputs = ['-i', voFile];
   if (music) {
     inputs.push('-stream_loop', '-1', '-i', music);
     f += `[vo]asplit[vo1][sc];[1:a]aresample=48000,volume=0.35,atrim=0:${tl.end},afade=t=out:st=${tl.end - 2}:d=2[m];[m][sc]sidechaincompress=threshold=0.03:ratio=8:attack=20:release=400[md];[vo1][md]amix=inputs=2:normalize=0[mix];[mix]loudnorm=I=-14:TP=-1.5:LRA=11[out]`;
@@ -79,8 +90,9 @@ function buildAudio(tl) {
 let tl, audio = null;
 if (preview) tl = { anchors: null, end: TARGET };
 else {
-  if (!existsSync(join(build, 'alignment.json'))) throw new Error('build/alignment.json belum ada. Jalankan tools/tts.mjs dulu, atau pakai --preview.');
-  tl = timelineFromVO();
+  const hasCues = existsSync(join(build, 'cues.json'));
+  if (!hasCues && !existsSync(join(build, 'alignment.json'))) throw new Error('build/alignment.json atau build/cues.json belum ada. Jalankan tools/tts.mjs dulu, atau pakai --preview.');
+  tl = hasCues ? timelineFromCues() : timelineFromVO();
   writeFileSync(join(build, 'timeline.json'), JSON.stringify(tl, null, 1));
   console.log(`VO ${tl.voEnd.toFixed(1)} dtk, jeda babak ${tl.gap.toFixed(2)} dtk, total ${tl.end.toFixed(2)} dtk`);
   audio = buildAudio(tl);
