@@ -13,6 +13,18 @@ const INDONESIAN = [
   'INFO HARIANKRIPTO JUST IN: Kepala IMF memperingatkan bahwa meningkatnya permintaan terhadap AI berpotensi mendorong kenaikan suku bunga global.',
   'Permisi min 🙏 WTS !! Ready Stock, trusted 101% Order Tanya stock ready',
   'Honestly this place is so good, harganya juga affordable banget',
+  // jualan UMKM campur Inggris, dulu salah dibaca sebagai bahasa Inggris (preview trigger asli, Nov 2026)
+  'Alhamdulillah sold out harga agen',
+  'In this economy mentai hrg 35k dibalikpapan',
+  'Spill supplier tangan pertama untuk custom hardbox premium souvenir/hampers',
+  'hii guyss! sesama business owner mutualan yukk di threads and instagram',
+  'Mom, please recommend pompa asi handsfree yang gk berisik under 1jt 🙏🏻',
+  'MOMS! Minta Rekomendasi swaddle newborn for baby boyy',
+  'Body and Hair Wash no SLS, no parfum/fragrance merk apa ajaa Bu?',
+  'WARGAAAA BLOK M, THIS IS FOR YOU!! Lady Bug is officially opening tomorrow',
+  'CALLING OUT SURABAYA TIMURR PEOPLEE‼️ ES GABIN 11 RIBU??!!! READY JUMAT 20/11',
+  'Happy bgt nyobain bikin new menu salt bread yaitu cheese garlic',
+  'Sunco nya qaqa',
 ];
 const MALAY = [
   'Hiii korang !! New affiliate heree 🙋🏻‍♀️ . . Jom follow saya',
@@ -29,7 +41,17 @@ const OTHER: Array<[string, string]> = [
   ['ar', 'أكتب هذا في اي ذكاء صناعي حوّل حياتي لمسلسل، واختَر اسمه ونوعه وقصته ووصف شخصيتي'],
   ['tl', 'Sino dito ang may alam ng magandang kainan sa Manila?'],
 ];
-const TOO_SHORT = ['Up', 'Fresh 🚬', 'mantap', 'https://affiliate.meesho.com/collection/abc', ''];
+// bahasa lain yang mirip/bercampur: harus tetap ditolak (bahasanya tidak diperiksa persis)
+const OTHER_MIXED = [
+  'OPEN NA PO ULIT KAMI TODAY! Beef Rice Bowl and Enoki Rice Bowl available',
+  'Sino have okada here? Fast pay po pm lang',
+  'Kalim-aw JAPANESE SWEET POTATO available po for everyone. We are open for orders',
+  'ang lambooottttt!!! 8 each lang yannn?? Collecting orders for sunday and monday',
+  'Dan and Ada went to the market this morning to buy fresh bread',
+  'Andrew Yang said the economy is changing fast for small business owners',
+  'Hey everyone, I am looking for someone experienced with Meta Ads to help me scale',
+];
+const TOO_SHORT =['Up', 'Fresh 🚬', 'mantap', 'https://affiliate.meesho.com/collection/abc', ''];
 
 test('parseLangList', () => {
   assert.deepEqual(parseLangList(''), []);
@@ -56,6 +78,7 @@ test('hanya bahasa Indonesia', async () => {
     assert.equal(v.lang, lang, t);
     assert.match(v.reason!, /bukan Indonesia$/);
   }
+  for (const t of OTHER_MIXED) assert.equal(check(t).ok, false, t);
 });
 
 test('Indonesia & Inggris', async () => {
