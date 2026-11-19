@@ -76,3 +76,12 @@ test('cleanReply & outputProblem: penalaran terpotong dibuang, tautan/nomor/ment
   assert.equal(outputProblem('Makasih @budi, enak banget!', 'budi'), '');
   assert.equal(outputProblem('Rp 25.000 aja, murah banget. Jam 10.00 buka', 'budi'), '');
 });
+
+test('bearerFrom: hanya token Comel yang dikenali', async () => {
+  const { bearerFrom } = await import('../src/lib/api-tokens');
+  assert.equal(bearerFrom(new Headers({ authorization: 'Bearer comel_abc' })), 'comel_abc');
+  assert.equal(bearerFrom(new Headers({ authorization: 'bearer comel_abc' })), 'comel_abc');
+  assert.equal(bearerFrom(new Headers({ authorization: 'Bearer sk-other' })), null);
+  assert.equal(bearerFrom(new Headers({ authorization: 'Basic xyz' })), null);
+  assert.equal(bearerFrom(new Headers()), null);
+});

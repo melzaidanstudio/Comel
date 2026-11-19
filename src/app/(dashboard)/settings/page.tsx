@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Copy, FlaskConical, KeyRound, RefreshCw, RotateCcw, Save } from 'lucide-react';
+import { Copy, FlaskConical, KeyRound, Plus, RefreshCw, RotateCcw, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/app/app-shell';
 import { Pill } from '@/components/app/common';
@@ -10,7 +10,7 @@ import type { AppSettings, ReplizStatus } from '@/components/app/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { api, useAction, useApi } from '@/lib/client';
+import { ago, api, useAction, useApi } from '@/lib/client';
 
 type TestResult = { name: string; plan: string; expiredAt: string | null; isGold: boolean; threadsAccounts: number; connectedThreadsAccounts: number };
 
@@ -121,6 +121,7 @@ export default function SettingsPage() {
       <PageHeader title="Pengaturan" />
       <div className="flex flex-col gap-6">
         <ReplizCard />
+        <ApiTokensCard />
         {f ? (
           <Card className="py-5">
             <CardHeader className="flex flex-row items-center justify-between px-5">
@@ -159,5 +160,67 @@ export default function SettingsPage() {
         ) : <p className="text-sm text-muted-foreground">Memuat…</p>}
       </div>
     </>
+  );
+}
+
+type ApiTokenJ = { id: number; name: string; prefix: string; createdAt: string; lastUsedAt: string | null };
+
+/** Token akses API untuk alat otomatis (mis. sesi Claude) — Authorization: Bearer comel_… */
+function ApiTokensCard() {
+  const list = useApi<ApiTokenJ[]>('/tokens');
+  const [name, setName] = useState('Claude');
+  const [fresh, setFresh] = useState<{ name: string; token: string } | null>(null);
+  const { busy, run } = useAction();
+
+  return (
+    <Card className="py-5">
+      <CardHeader className="px-5">
+        <CardTitle>Token akses API</CardTitle>
+        <CardDescription>
+          Untuk memberi alat otomatis (mis. sesi Claude) akses ke Comel lewat API, tanpa password.
+          Token punya akses penuh seperti admin — simpan di tempat rahasia, jangan ditempel di chat. Cabut kapan saja.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4 px-5">
+        {fresh ? (
+          <div className="flex flex-col gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
+            <p className="text-sm font-medium">Token &quot;{fresh.name}&quot; — salin sekarang, tidak akan ditampilkan lagi:</p>
+            <div className="flex gap-2">
+              <Input readOnly value={fresh.token} className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
+              <Button variant="outline" size="icon" aria-label="Salin token API" onClick={() => copy(fresh.token, 'Token API')}><Copy /></Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Untuk Claude: simpan di pengaturan environment sesi Claude (menu environment → Edit) sebagai environment variable <code>COMEL_API_TOKEN</code>, lalu buka sesi baru.
+            </p>
+            <Button variant="ghost" size="sm" className="self-start" onClick={() => setFresh(null)}>Sudah disimpan, tutup</Button>
+          </div>
+        ) : null}
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+          <div className="flex-1"><TextField label="Nama token" value={name} onChange={setName} placeholder="Claude" /></div>
+          <Button disabled={busy === 'new' || !name.trim()} onClick={() => run('new', async () => {
+            const r = await api<ApiTokenJ & { token: string }>('/tokens', { method: 'POST', body: { name: name.trim() } });
+            setFresh({ name: r.name, token: r.token });
+            await list.reload();
+          })}><Plus />{busy === 'new' ? 'Membuat…' : 'Buat token'}</Button>
+        </div>
+
+        {list.data && !list.data.length ? <p className="text-sm text-muted-foreground">Belum ada token.</p> : null}
+        {list.data?.length ? <div className="flex flex-col divide-y rounded-lg border">
+          {list.data.map((t) => (
+            <div key={t.id} className="flex items-center justify-between gap-3 p-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{t.name} <span className="font-mono text-xs text-muted-foreground">{t.prefix}…</span></p>
+                <p className="text-xs text-muted-foreground">dibuat {ago(t.createdAt)} · terakhir dipakai {t.lastUsedAt ? ago(t.lastUsedAt) : 'belum pernah'}</p>
+              </div>
+              <Button size="sm" variant="ghost" className="text-destructive" disabled={busy === `del${t.id}`} onClick={() => {
+                if (!confirm(`Cabut token "${t.name}"? Alat yang memakainya langsung tidak bisa masuk.`)) return;
+                void run(`del${t.id}`, async () => { await api(`/tokens/${t.id}`, { method: 'DELETE' }); await list.reload(); toast.success('Token dicabut'); });
+              }}><Trash2 />Cabut</Button>
+            </div>
+          ))}
+        </div> : null}
+      </CardContent>
+    </Card>
   );
 }

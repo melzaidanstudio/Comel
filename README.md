@@ -195,6 +195,23 @@ Per akun: komentar orang di **postingan akun itu** diambil dari antrean komentar
 
 ---
 
+## Token akses API (untuk Claude / otomasi)
+
+Pengaturan → **Token akses API** → **Buat token**. Token (`comel_…`) hanya tampil sekali; yang disimpan hanya hash-nya.
+Token punya akses yang sama dengan admin, kecuali membuat/mencabut token. Cabut kapan saja dari halaman yang sama.
+
+```bash
+curl -H "Authorization: Bearer $COMEL_API_TOKEN" https://domain-comel-anda/api/triggers
+```
+
+Untuk sesi Claude Code di cloud: simpan token di pengaturan environment (menu environment → Edit) sebagai
+environment variable `COMEL_API_TOKEN` (dan `COMEL_URL`, mis. `https://comel.domainanda.com`), lalu buka sesi baru.
+Jangan menempel token di chat.
+
+Endpoint yang berguna: `GET/PUT /api/triggers[/id]`, `POST /api/triggers/{id}/preview`, `POST /api/triggers/{id}/run`,
+`POST /api/triggers/{id}/recommend`, `GET /api/logs?limit=50`, `GET /api/actions`, `GET/PUT /api/settings`,
+`GET/PUT /api/accounts[/id]`, `GET /api/inbox`.
+
 ## Struktur proyek
 
 ```

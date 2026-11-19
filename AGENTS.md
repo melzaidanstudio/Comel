@@ -25,3 +25,11 @@ Proyek ini memakai **Repliz** (https://repliz.com) sebagai jembatan koneksi ke T
   Batas per akun: 10 balasan/jam, 50/hari, jeda 3–10 menit, orang yang sama 7 hari; 1.500 pencarian/hari.
 - Webhook memverifikasi header `x-token` dan tidak punya retry otomatis; event bisa datang tidak berurutan, jadi deduplikasi dengan ID.
 - API Repliz berubah cepat. Cek https://docs.repliz.com/api/changelog.html bila ada yang tidak cocok.
+
+## Akses ke Comel yang sedang berjalan
+
+Bila environment punya `COMEL_API_TOKEN` (dan `COMEL_URL`), panggil API Comel langsung dengan header
+`Authorization: Bearer $COMEL_API_TOKEN`, mis. `curl -H "Authorization: Bearer $COMEL_API_TOKEN" "$COMEL_URL/api/logs?limit=50"`.
+Token setara admin (kecuali mengelola token): baca dulu, ubah data hanya bila pengguna memintanya, dan jangan pernah menampilkan tokennya.
+Lihat README → "Token akses API" untuk daftar endpoint.
+

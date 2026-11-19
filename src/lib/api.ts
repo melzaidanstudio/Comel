@@ -1,4 +1,5 @@
 import { ZodError } from 'zod';
+import { bearerFrom, verifyApiToken } from './api-tokens';
 import { auth } from './auth';
 
 export class HttpError extends Error {
@@ -31,17 +32,26 @@ function crossSite(req: Request): boolean {
 }
 
 /**
- * Bungkus route handler: wajib login (better-auth), ubah hasil jadi JSON,
- * dan ubah error jadi { error } dengan status yang sesuai.
+ * Bungkus route handler: wajib login (sesi better-auth, atau token API `Authorization: Bearer comel_…`),
+ * ubah hasil jadi JSON, dan ubah error jadi { error } dengan status yang sesuai.
+ * `sessionOnly`: hanya sesi login di browser (dipakai untuk mengelola token API itu sendiri).
  */
 export function route<C = Ctx>(
   fn: (req: Request, ctx: C) => Promise<unknown> | unknown,
+  opts: { sessionOnly?: boolean } = {},
 ) {
   return async (req: Request, ctx: C) => {
     try {
-      if (crossSite(req)) return Response.json({ error: 'Origin tidak diizinkan' }, { status: 403 });
-      const s = await auth.api.getSession({ headers: req.headers });
-      if (!s) return Response.json({ error: 'Belum login' }, { status: 401 });
+      const bearer = bearerFrom(req.headers);
+      if (bearer) {
+        // token API: tanpa cookie, jadi pemeriksaan Origin (CSRF) tidak diperlukan
+        if (opts.sessionOnly) return Response.json({ error: 'Hanya bisa dari dashboard (login), bukan dengan token API' }, { status: 403 });
+        if (!await verifyApiToken(bearer)) return Response.json({ error: 'Token API tidak valid atau sudah dicabut' }, { status: 401 });
+      } else {
+        if (crossSite(req)) return Response.json({ error: 'Origin tidak diizinkan' }, { status: 403 });
+        const s = await auth.api.getSession({ headers: req.headers });
+        if (!s) return Response.json({ error: 'Belum login' }, { status: 401 });
+      }
       const out = await fn(req, ctx);
       if (out instanceof Response) return out;
       return Response.json(out ?? { ok: true });

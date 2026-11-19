@@ -58,6 +58,16 @@ export const settings = pgTable('settings', {
   value: jsonb(),
 });
 
+/** Token akses API (Authorization: Bearer comel_…) — yang disimpan hanya hash SHA-256-nya. */
+export const apiTokens = pgTable('api_tokens', {
+  id: serial().primaryKey(),
+  name: text().notNull(),
+  tokenHash: text().notNull().unique(),
+  prefix: text().notNull(), // awal token untuk dikenali di daftar, mis. "comel_Ab12"
+  lastUsedAt: tz(),
+  createdAt: createdAt(),
+});
+
 export const providers = pgTable('providers', {
   id: serial().primaryKey(),
   name: text().notNull(),
