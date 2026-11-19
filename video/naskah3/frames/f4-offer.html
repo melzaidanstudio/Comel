@@ -1,23 +1,22 @@
 <!doctype html>
 <html lang="id"><head><meta charset="utf-8"><title>F4 Offer</title>
-<link rel="stylesheet" href="frame.css">
+<link rel="stylesheet" href="frame.css"><script src="map.js"></script>
 <style>
-  .panel { position: absolute; left: 72px; right: 120px; top: 700px; background: var(--white); border-radius: 40px; box-shadow: 0 30px 80px rgba(35,33,74,.14); padding: 48px; display: flex; flex-direction: column; gap: 40px; }
+  .panel { position: absolute; left: 72px; right: 120px; top: 720px; background: var(--card); color: var(--ink); border-radius: 40px; padding: 48px; display: flex; flex-direction: column; gap: 40px; box-shadow: 0 30px 80px rgba(0,0,0,.16); }
   .row { display: flex; align-items: center; justify-content: space-between; }
-  .row .lbl { font-family: var(--body); font-weight: 600; font-size: 44px; color: var(--ink); }
-  .switch { width: 168px; height: 92px; border-radius: 46px; background: var(--pink); position: relative; }
-  .switch::after { content: ""; position: absolute; right: 10px; top: 10px; width: 72px; height: 72px; border-radius: 50%; background: var(--white); box-shadow: 0 4px 10px rgba(35,33,74,.2); }
+  .row .lbl { font-weight: 600; font-size: 44px; }
+  .switch { width: 168px; height: 92px; border-radius: 46px; background: var(--you); position: relative; }
+  .switch::after { content: ""; position: absolute; right: 10px; top: 10px; width: 72px; height: 72px; border-radius: 50%; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,.2); }
   .drafts { display: flex; flex-direction: column; gap: 18px; }
-  .d { display: flex; align-items: center; gap: 20px; background: #f6f3ff; border: 2px dashed #cfc6f5; border-radius: 24px; padding: 22px 26px; }
+  .d { display: flex; align-items: center; gap: 20px; background: var(--card-soft); border: 3px dashed var(--card-line); border-radius: 24px; padding: 22px 26px; }
   .d .bars { flex: 1; display: flex; flex-direction: column; gap: 12px; }
-  .d .bar { height: 18px; background: #e4def9; }
-  .d .bar + .bar { width: 64%; }
-  .d .chip { font-family: var(--mono); font-weight: 800; font-size: 26px; letter-spacing: .08em; padding: 8px 14px; border-radius: 6px; border: 3px solid #e0578a; color: #c8406f; }
-  .sent { display: flex; align-items: baseline; justify-content: space-between; border-top: 2px solid #eeeaf9; padding-top: 32px; }
-  .sent .lbl { font-family: var(--mono); font-weight: 800; font-size: 40px; letter-spacing: .1em; color: #6b6890; }
-  .sent .n { font-family: var(--display); font-weight: 800; font-size: 220px; line-height: .8; color: var(--ink); }
+  .d .bar { height: 18px; } .d .bar + .bar { width: 64%; }
+  .d .chip { font-family: var(--mono); font-weight: 800; font-size: 26px; letter-spacing: .08em; padding: 8px 14px; border-radius: 6px; border: 3px solid var(--you); color: var(--ink); }
+  .sent { display: flex; align-items: baseline; justify-content: space-between; border-top: 2px solid var(--card-line); padding-top: 32px; }
+  .sent .lbl { font-family: var(--mono); font-weight: 800; font-size: 40px; letter-spacing: .1em; color: var(--card-muted); }
+  .sent .n { font-family: var(--display); font-weight: 800; font-size: 220px; line-height: .8; }
 </style></head>
-<body class="ink" style="background:var(--lav)">
+<body class="s-offer">
 <div class="cap"><span class="sm">UJI COBA:</span><span>0 TERKIRIM</span></div>
 <div class="panel">
   <div class="row"><span class="lbl">Uji coba</span><div class="switch"></div></div>

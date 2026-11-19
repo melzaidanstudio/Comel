@@ -1,59 +1,93 @@
-/* Style frame Naskah 3 — kanvas 1080×1920 (9:16).
-   Area aman teks: x 72–960, y 260–1500 (atas & bawah tertutup UI aplikasi). */
+/* Style frame Naskah 3: kanvas 1080×1920 (9:16).
+   Area aman teks: x 72–960, y 260–1500 (atas & bawah tertutup UI aplikasi).
+   Tema dipilih lewat atribut data-t di <html> (?t=pop|neon|tropis). Semua warna lewat token. */
 @import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@700;800&display=swap");
 
-:root {
-  /* Pastel ala Korea: latar pastel per babak, teks navy tua, pink stroberi = KAMU */
-  --ink: #23214a;      /* navy: teks, blok teks layar */
-  --paper: #fbf9ff;    /* putih susu */
-  --pink: #ff7ea8;     /* KAMU, sorotan, pin bisnismu */
-  --pink-soft: #ffe3ec;/* latar CTA */
-  --lav: #e8e2ff;      /* latar Offer */
-  --lav-2: #d9d1fb;
-  --mint: #dff5ec;     /* latar Gain */
-  --mint-2: #59c9a5;
-  --sky: #5d9eff;      /* angka balasan */
-  --sky-soft: #dcebff; /* latar Story */
-  --butter: #fff1b8;   /* kartu promo */
-  --rival: #a7a3bf;    /* SAINGAN */
-  --alarm: #ff5a6e;    /* coret / buang */
-  --sun: var(--pink);
-  --white: #ffffff;
+/* Tropis segar: teal, mangga, koral */
+:root, [data-t="tropis"] {
+  --ink: #063b3f; --card: #ffffff; --card-soft: #f2faf9; --card-line: #e1eeec; --card-muted: #8aa3a2;
+  --cap-bg: #063b3f; --cap-fg: #ffffff; --label-bg: #ffb627; --label-fg: #063b3f;
+  --you: #ff6b5b; --rival: #93a9a8; --reply: #0fa3a3; --alarm: #e23d3d; --btn-bg: #ffb627; --btn-fg: #063b3f;
+  --hook-bg: #f4fbfa; --hook-fg: #063b3f;
+  --story-bg: #0fa3a3; --story-fg: #ffffff;
+  --gain-bg: #e6f6f3; --gain-fg: #063b3f;
+  --offer-bg: #ffe7c2; --offer-fg: #063b3f;
+  --cta-bg: #063b3f; --cta-fg: #ffffff; --cta-cap-bg: #ffb627; --cta-cap-fg: #063b3f;
+  --map-road: #f4fbfa; --map-block: #dcefec; --map-park: #c3e8cd; --map-river: #9ed8e6; --map-main: #ffffff;
+  --cta-road: #063b3f; --cta-block: #0b4d52; --cta-park: #0e5b4e; --cta-river: #146a78; --cta-main: #0f5a5f; --pin: #3f8f8f;
+  --texture: none;
+}
+
+/* Pop risograph: kobalt, merah-oranye, kuning, tinta hitam, titik raster */
+[data-t="pop"] {
+  --ink: #141414; --card: #ffffff; --card-soft: #f4f4f1; --card-line: #e4e4df; --card-muted: #9a9a94;
+  --cap-bg: #141414; --cap-fg: #ffffff; --label-bg: #ff4d2e; --label-fg: #141414;
+  --you: #ff4d2e; --rival: #9a9a94; --reply: #2d4bff; --alarm: #d7001f; --btn-bg: #141414; --btn-fg: #ffffff;
+  --hook-bg: #f2f2ee; --hook-fg: #141414;
+  --story-bg: #2d4bff; --story-fg: #ffffff;
+  --gain-bg: #ffd23f; --gain-fg: #141414;
+  --offer-bg: #f2f2ee; --offer-fg: #141414;
+  --cta-bg: #ff4d2e; --cta-fg: #141414; --cta-cap-bg: #141414; --cta-cap-fg: #ffffff; --cta-label-bg: #ffd23f; --cta-label-fg: #141414; --cta-you: #ffd23f;
+  --map-road: #f2f2ee; --map-block: #dcdcd5; --map-park: #ffd23f; --map-river: #9fb0ff; --map-main: #ffffff;
+  --cta-road: #ff4d2e; --cta-block: #ff6a4f; --cta-park: #ffd23f; --cta-river: #2d4bff; --cta-main: #ff8b75; --pin: #141414;
+  --texture: radial-gradient(rgba(20,20,20,.10) 1.6px, transparent 1.8px) 0 0 / 14px 14px;
+}
+
+/* Pasar malam: indigo malam, lampu amber, magenta, sian */
+[data-t="neon"] {
+  --ink: #ffffff; --card: #2a1d5c; --card-soft: #31236a; --card-line: #3d2f7d; --card-muted: #9a93c6;
+  --cap-bg: #ffffff; --cap-fg: #160f33; --label-bg: #ff3ea5; --label-fg: #160f33;
+  --you: #ffb443; --rival: #6e6a8e; --reply: #3ee6ff; --alarm: #ff4d6d; --btn-bg: #ffb443; --btn-fg: #160f33;
+  --hook-bg: #160f33; --hook-fg: #ffffff;
+  --story-bg: #1d1445; --story-fg: #ffffff;
+  --gain-bg: #160f33; --gain-fg: #ffffff;
+  --offer-bg: #1d1445; --offer-fg: #ffffff;
+  --cta-bg: #0f0a24; --cta-fg: #ffffff; --cta-cap-bg: #ffffff; --cta-cap-fg: #160f33;
+  --map-road: #160f33; --map-block: #241a52; --map-park: #1f2c5c; --map-river: #283c8f; --map-main: #33266e;
+  --cta-road: #0f0a24; --cta-block: #1e1648; --cta-park: #1a2552; --cta-river: #23367f; --cta-main: #2c2163; --pin: #6e6a8e;
+  --texture: none;
+}
+
+:root { --white: #ffffff;
   --display: "Bricolage Grotesque", "Inter", system-ui, sans-serif;
   --body: "Inter", system-ui, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, monospace;
-}
+  --mono: "JetBrains Mono", ui-monospace, monospace; }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { width: 1080px; height: 1920px; overflow: hidden; }
 body { font-family: var(--body); position: relative; }
-.paper { background: var(--paper); color: var(--ink); }
-.ink { background: var(--sky-soft); color: var(--ink); }
+body::after { content: ""; position: absolute; inset: 0; background: var(--texture); pointer-events: none; z-index: 50; }
+.s-hook { background: var(--hook-bg); color: var(--hook-fg); }
+.s-story { background: var(--story-bg); color: var(--story-fg); }
+.s-gain { background: var(--gain-bg); color: var(--gain-fg); }
+.s-offer { background: var(--offer-bg); color: var(--offer-fg); }
+.s-cta { background: var(--cta-bg); color: var(--cta-fg); }
 
-/* Teks layar: blok kuning berlapis, rata kiri, di sepertiga atas */
-.cap { position: absolute; left: 72px; right: 120px; top: 300px; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; z-index: 5; }
-.cap span { font-family: var(--display); font-weight: 800; font-size: 88px; line-height: 1; letter-spacing: -0.01em; text-transform: none; background: var(--ink); color: var(--white); padding: 14px 24px 20px; border-radius: 6px; box-decoration-break: clone; }
-.cap span.sm { font-size: 60px; padding: 12px 22px 16px; background: var(--pink); color: var(--ink); }
-.cap span.ghost { background: transparent; color: inherit; opacity: .35; padding-left: 0; }
-.tag { display: inline-flex; align-items: center; gap: 12px; font-family: var(--mono); font-weight: 800; font-size: 34px; letter-spacing: .08em; padding: 10px 18px; border-radius: 4px; background: var(--white); color: var(--ink); }
-.tag::before { content: ""; width: 16px; height: 16px; border-radius: 50%; background: var(--alarm); }
-.ink .tag { background: var(--white); }
+/* Logo kecil di pojok sejak detik 0 */
+.logo { position: absolute; left: 72px; top: 262px; z-index: 6; display: inline-flex; align-items: center; gap: 10px; padding: 8px 18px 8px 10px; border-radius: 999px; background: var(--card); color: var(--ink); font-family: var(--display); font-weight: 800; font-size: 32px; box-shadow: 0 6px 18px rgba(0,0,0,.12); }
+.logo svg { width: 40px; height: 40px; }
+
+/* Teks layar: blok berlapis, rata kiri, sepertiga atas */
+.cap { position: absolute; left: 72px; right: 120px; top: 350px; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; z-index: 5; }
+.cap span { font-family: var(--display); font-weight: 800; font-size: 88px; line-height: 1; letter-spacing: -0.01em; background: var(--cap-bg); color: var(--cap-fg); padding: 14px 24px 20px; border-radius: 6px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.cap span.sm { font-size: 60px; padding: 12px 22px 16px; background: var(--label-bg); color: var(--label-fg); }
+.cap span.ghost { background: transparent; color: inherit; opacity: .4; padding-left: 0; }
+.s-cta .cap span { background: var(--cta-cap-bg); color: var(--cta-cap-fg); }
+.s-cta .cap span.sm { background: var(--cta-label-bg, var(--label-bg)); color: var(--cta-label-fg, var(--label-fg)); }
 
 /* Kartu postingan generik (bukan UI resmi) */
-.post { position: absolute; background: var(--white); color: var(--ink); border-radius: 36px; padding: 40px 44px; box-shadow: 0 30px 80px rgba(35,33,74,.16); }
+.post { position: absolute; background: var(--card); color: var(--ink); border-radius: 36px; padding: 40px 44px; box-shadow: 0 30px 80px rgba(0,0,0,.22); }
 .who { display: flex; align-items: center; gap: 24px; }
-.av { width: 96px; height: 96px; border-radius: 50%; background: conic-gradient(from 40deg, #c9c2ee, #f6cfe0, #bfe6d6, #c9c2ee); filter: blur(5px); }
-.bar { height: 26px; border-radius: 13px; background: #e4e0f5; }
+.av { width: 96px; height: 96px; border-radius: 50%; background: conic-gradient(from 40deg, var(--rival), var(--card-line), var(--reply), var(--rival)); filter: blur(6px); opacity: .8; }
+.bar { height: 26px; border-radius: 13px; background: var(--card-line); }
 .lines { display: flex; flex-direction: column; gap: 18px; margin-top: 36px; }
-.lines .bar { height: 30px; background: #efecfa; }
-.metrics { display: flex; align-items: flex-end; gap: 56px; margin-top: 44px; padding-top: 32px; border-top: 2px solid #f0edfa; }
-.m { display: flex; align-items: center; gap: 16px; font-family: var(--mono); font-weight: 800; font-size: 52px; color: #a7a3bf; }
+.lines .bar { height: 30px; }
+.metrics { display: flex; align-items: flex-end; gap: 56px; margin-top: 44px; padding-top: 32px; border-top: 2px solid var(--card-line); }
+.m { display: flex; align-items: center; gap: 16px; font-family: var(--mono); font-weight: 800; font-size: 52px; color: var(--card-muted); }
 .m svg { width: 52px; height: 52px; }
-.m.hot { color: var(--sky); font-family: var(--display); font-size: 140px; line-height: .8; }
+.m.hot { color: var(--reply); font-family: var(--display); font-size: 140px; line-height: .8; }
 .m.hot svg { width: 96px; height: 96px; }
 
 .btn { display: inline-flex; align-items: center; justify-content: center; font-family: var(--body); font-weight: 700; border-radius: 999px; }
-.brand { position: absolute; left: 72px; bottom: 300px; display: flex; align-items: center; gap: 18px; font-family: var(--display); font-weight: 800; font-size: 54px; }
-.brand svg { width: 72px; height: 72px; }
 .safe { display: none; }
 body.show-safe .safe { display: block; position: absolute; left: 72px; right: 120px; top: 260px; bottom: 420px; outline: 3px dashed rgba(255,0,0,.6); z-index: 99; }

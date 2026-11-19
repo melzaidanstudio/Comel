@@ -1,43 +1,35 @@
 <!doctype html>
-<html lang="id"><head><meta charset="utf-8"><title>F3 Filter</title>
-<link rel="stylesheet" href="frame.css">
+<html lang="id"><head><meta charset="utf-8"><title>F3 Kata dihindari</title>
+<link rel="stylesheet" href="frame.css"><script src="map.js"></script>
 <style>
-  .rule { position: absolute; left: 72px; top: 560px; display: flex; gap: 14px; flex-wrap: wrap; }
-  .rule .chip { font-family: var(--mono); font-weight: 800; font-size: 34px; padding: 12px 20px; border-radius: 999px; background: var(--ink); color: var(--paper); }
-  .rule .chip.k { background: var(--white); color: var(--ink); border: 3px solid var(--ink); }
-  .funnel { position: absolute; left: 0; top: 680px; width: 1080px; height: 900px; }
-  .in { position: absolute; width: 190px; height: 92px; border-radius: 20px; background: var(--white); box-shadow: 0 8px 20px rgba(35,33,74,.10); padding: 20px; display: flex; flex-direction: column; gap: 12px; }
-  .in .bar { height: 16px; background: #e4e0f5; }
-  .in .bar + .bar { width: 60%; }
-  .out { position: absolute; font-family: var(--display); font-weight: 800; font-size: 58px; color: var(--alarm); text-decoration: line-through; text-decoration-thickness: 8px; z-index: 3; }
-  .reply { position: absolute; left: 270px; top: 1330px; width: 540px; background: var(--pink); color: var(--ink); border-radius: 36px 36px 8px 36px; padding: 28px 32px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 50px rgba(255,126,168,.35); z-index: 3; }
+  .rule { position: absolute; left: 72px; top: 700px; display: flex; gap: 14px; flex-wrap: wrap; z-index: 4; }
+  .chip { font-family: var(--mono); font-weight: 800; font-size: 32px; padding: 12px 20px; border-radius: 999px; background: var(--cap-bg); color: var(--cap-fg); }
+  .chip.k { background: var(--card); color: var(--ink); }
+  .chip.x { background: var(--card); color: var(--alarm); border: 4px solid var(--alarm); display: inline-flex; align-items: center; gap: 10px; }
+  .chip.x::before { content: ""; width: 26px; height: 26px; border-radius: 50%; border: 4px solid var(--alarm); background: linear-gradient(45deg, transparent 44%, var(--alarm) 44% 56%, transparent 56%); }
+  .funnel { position: absolute; left: 0; top: 820px; width: 1080px; height: 520px; z-index: 1; }
+  .funnel .body { fill: var(--card); stroke: var(--gain-fg); }
+  .funnel .rim { stroke: var(--reply); }
+  .in { position: absolute; width: 190px; height: 92px; border-radius: 20px; background: var(--card); box-shadow: 0 8px 20px rgba(0,0,0,.12); padding: 20px; display: flex; flex-direction: column; gap: 12px; z-index: 2; }
+  .in .bar { height: 16px; } .in .bar + .bar { width: 60%; }
+  .bad { position: absolute; left: 70px; top: 1040px; transform: rotate(-16deg); z-index: 3; background: var(--card); border-radius: 20px; padding: 18px 24px; box-shadow: 0 12px 30px rgba(0,0,0,.2); font-family: var(--display); font-weight: 800; font-size: 56px; color: var(--alarm); text-decoration: line-through; text-decoration-thickness: 8px; }
+  .reply { position: absolute; left: 270px; top: 1300px; width: 540px; background: var(--you); border-radius: 36px 36px 8px 36px; padding: 28px 32px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 50px rgba(0,0,0,.2); z-index: 3; }
   .reply .bar { background: rgba(255,255,255,.6); height: 22px; }
-  .reply .bar:nth-child(2) { width: 82%; }
-  .reply .bar:nth-child(3) { width: 46%; }
-  .reply .cur { position: absolute; right: 40px; bottom: 30px; width: 6px; height: 40px; background: var(--ink); }
-  .cap { top: 300px; }
-  .cap span:last-child { font-size: 64px; }
+  .reply .bar:nth-child(2) { width: 82%; } .reply .bar:nth-child(3) { width: 46%; }
+  .reply .cur { position: absolute; right: 40px; bottom: 30px; width: 6px; height: 40px; background: #fff; }
 </style></head>
-<body class="paper" style="background:var(--mint)">
-<div class="cap"><span class="sm">BUANG:</span><span>LOKER · LOWONGAN · DIJUAL</span></div>
-
-<div class="rule"><span class="chip k">Bogor</span><span class="chip">CONTOH: &lt; 24 JAM · MIN 5 BALASAN</span></div>
-
-<svg class="funnel" viewBox="0 0 1080 900">
-  <path d="M140 180 H940 L640 560 V680 H440 V560 Z" fill="#ffffff" stroke="#23214a" stroke-width="8" stroke-linejoin="round"/>
-  <path d="M190 210 H890" stroke="#59c9a5" stroke-width="6" stroke-dasharray="18 14"/>
-  <path d="M540 690 V760" stroke="#23214a" stroke-width="10" stroke-linecap="round" stroke-dasharray="4 22"/>
+<body class="s-gain">
+<div class="cap"><span class="sm">KATA YANG KAMU HINDARI, CONTOH:</span><span>LOKER</span></div>
+<div class="rule"><span class="chip k">Bogor</span><span class="chip x">loker</span></div>
+<svg class="funnel" viewBox="0 0 1080 520">
+  <path class="body" d="M150 70 H930 L630 360 V470 H450 V360 Z" stroke-width="8" stroke-linejoin="round"/>
+  <path class="rim" d="M200 100 H880" stroke-width="6" stroke-dasharray="18 14"/>
 </svg>
-
-<div class="in" style="left:170px;top:730px"><div class="bar"></div><div class="bar"></div></div>
-<div class="in" style="left:445px;top:710px"><div class="bar"></div><div class="bar"></div></div>
-<div class="in" style="left:720px;top:740px"><div class="bar"></div><div class="bar"></div></div>
-<div class="in" style="left:450px;top:1000px;transform:scale(.8)"><div class="bar"></div><div class="bar"></div></div>
-
-<div class="out" style="left:80px;top:1060px;transform:rotate(-14deg)">LOKER</div>
-<div class="out" style="left:650px;top:1030px;transform:rotate(12deg)">LOWONGAN</div>
-<div class="out" style="left:700px;top:1170px;transform:rotate(20deg);opacity:.7">DIJUAL</div>
-
+<div class="in" style="left:200px;top:840px"><div class="bar"></div><div class="bar"></div></div>
+<div class="in" style="left:445px;top:820px"><div class="bar"></div><div class="bar"></div></div>
+<div class="in" style="left:690px;top:850px"><div class="bar"></div><div class="bar"></div></div>
+<div class="in" style="left:445px;top:1050px;transform:scale(.8)"><div class="bar"></div><div class="bar"></div></div>
+<div class="bad">loker</div>
 <div class="reply"><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="cur"></div></div>
 <div class="safe"></div>
 </body></html>

@@ -1,43 +1,32 @@
 <!doctype html>
 <html lang="id"><head><meta charset="utf-8"><title>F1 Hook</title>
-<link rel="stylesheet" href="frame.css">
+<link rel="stylesheet" href="frame.css"><script src="map.js"></script>
 <style>
-  #map { position: absolute; inset: 0; width: 1080px; height: 1920px; opacity: .9; }
-  .q { position: absolute; left: 330px; top: 860px; width: 420px; padding: 34px 38px 40px; background: var(--white); border-radius: 40px 40px 40px 8px; box-shadow: 0 24px 60px rgba(35,33,74,.18); z-index: 3; }
-  .q b { display: block; font-family: var(--display); font-weight: 800; font-size: 120px; line-height: .8; color: var(--ink); }
+  #map { position: absolute; inset: 0; width: 1080px; height: 1920px; }
+  .q { position: absolute; left: 330px; top: 900px; width: 420px; padding: 34px 38px 40px; background: var(--card); color: var(--ink); border-radius: 40px 40px 40px 8px; box-shadow: 0 24px 60px rgba(0,0,0,.2); z-index: 3; }
+  .q b { display: block; font-family: var(--display); font-weight: 800; font-size: 120px; line-height: .8; }
   .q .bar { margin-top: 22px; height: 22px; }
   .q .bar + .bar { width: 70%; margin-top: 14px; }
-  .q::after { content: ""; position: absolute; inset: -26px; border: 6px solid var(--pink); border-radius: 60px 60px 60px 24px; opacity: .55; }
+  .q::after { content: ""; position: absolute; inset: -26px; border: 6px solid var(--you); border-radius: 60px 60px 60px 24px; opacity: .6; }
   .runner { position: absolute; z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-  .runner .face { width: 150px; height: 150px; border-radius: 50%; display: grid; place-items: center; border: 8px solid var(--white); box-shadow: 0 16px 40px rgba(35,33,74,.22); }
+  .runner .face { width: 150px; height: 150px; border-radius: 50%; display: grid; place-items: center; border: 8px solid var(--card); box-shadow: 0 16px 40px rgba(0,0,0,.22); }
   .runner .face svg { width: 78px; height: 78px; }
   .runner label { font-family: var(--mono); font-weight: 800; font-size: 34px; letter-spacing: .1em; padding: 6px 14px; border-radius: 4px; }
-  .you { left: 150px; top: 1240px; }
-  .you .face { background: var(--sun); }
-  .you label { background: var(--ink); color: var(--white); }
-  .rival { left: 760px; top: 1300px; }
-  .rival .face { background: var(--rival); }
-  .rival label { background: var(--white); color: var(--ink); }
+  .you { left: 150px; top: 1250px; } .you .face { background: var(--you); } .you label { background: var(--cap-bg); color: var(--cap-fg); }
+  .rival { left: 760px; top: 1300px; } .rival .face { background: var(--rival); } .rival label { background: var(--card); color: var(--ink); }
   .trail { position: absolute; z-index: 2; }
+  .trail path { stroke-width: 14; stroke-dasharray: 2 26; stroke-linecap: round; fill: none; }
 </style></head>
-<body class="paper">
+<body class="s-hook">
 <svg id="map"></svg>
 <div class="cap"><span class="sm ghost">MAKAN ENAK DI MANA?</span><span>KAMU ATAU SAINGANMU?</span></div>
-
 <svg class="trail" width="1080" height="1920" viewBox="0 0 1080 1920">
-  <path d="M225 1240 C 260 1110, 340 1060, 420 1040" stroke="#ff7ea8" stroke-width="14" stroke-dasharray="2 26" stroke-linecap="round" fill="none"/>
-  <path d="M835 1300 C 820 1170, 740 1090, 660 1060" stroke="#a7a3bf" stroke-width="14" stroke-dasharray="2 26" stroke-linecap="round" fill="none"/>
+  <path d="M225 1250 C 260 1130, 340 1090, 420 1080" style="stroke:var(--you)"/>
+  <path d="M835 1300 C 820 1190, 740 1120, 660 1100" style="stroke:var(--rival)"/>
 </svg>
-
 <div class="q"><b>?</b><div class="bar"></div><div class="bar"></div></div>
-
-<div class="runner you"><div class="face">
-  <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/><path d="M5 13v7h14v-7"/><path d="M10 20v-4h4v4"/></svg>
-</div><label>KAMU</label></div>
-<div class="runner rival"><div class="face">
-  <svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/><path d="M5 13v7h14v-7"/><path d="M10 20v-4h4v4"/></svg>
-</div><label>SAINGAN</label></div>
+<div class="runner you"><div class="face"><svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/><path d="M5 13v7h14v-7"/><path d="M10 20v-4h4v4"/></svg></div><label>KAMU</label></div>
+<div class="runner rival"><div class="face"><svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/><path d="M5 13v7h14v-7"/><path d="M10 20v-4h4v4"/></svg></div><label>SAINGAN</label></div>
 <div class="safe"></div>
-<script src="map.js"></script>
 <script>drawMap(document.getElementById('map'));</script>
 </body></html>
