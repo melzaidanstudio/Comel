@@ -471,7 +471,7 @@ layer('S16', 'S17', '', (el) => {
   const o = {};
   o.lines = ['UJI DULU,', 'KIRIM BELAKANGAN'].map((t, i) => h('span', '', null, t));
   o.box = h('div', 'promo', el); o.lines.forEach((l) => o.box.appendChild(l));
-  o.note = h('div', 'abs', el, 'Pakai kunci AI sendiri', 'left:72px;top:1060px;font-family:var(--body);font-weight:600;font-size:44px;color:var(--ink);padding:10px 22px;border-radius:999px;border:3px solid var(--ink)');
+  o.note = h('div', 'abs', el, 'Pakai kunci AI sendiri', 'left:72px;top:1120px;font-family:var(--body);font-weight:600;font-size:44px;color:var(--ink);padding:10px 22px;border-radius:999px;border:3px solid var(--ink)');
   return o;
 }, (o, lt) => {
   o.lines.forEach((l, i) => {
@@ -495,7 +495,7 @@ layer('S17', null, 's-cta', (el) => {
   o.rip = h('div', 'ripple', el);
   o.btn = h('div', 'btn follow', el, 'Follow');
   return o;
-}, (o, lt, d) => {
+}, (o, lt, d, A) => {
   o.mapw.style.transform = `scale(${1.3 - 0.3 * E.out(P(lt, 0, 1.6))})`;
   o.pins.forEach((p, i) => show(p, 0.25 + 0.75 * E.out(P(lt, 0.3 + i * 0.15, 0.6 + i * 0.15))));
   const mp = E.back(P(lt, 0.5, 0.95));
