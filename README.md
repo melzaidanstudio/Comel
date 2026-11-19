@@ -152,7 +152,7 @@ Tidak peka huruf besar/kecil; nama topic tag ikut dicocokkan.
 
 ### Topic tag
 
-- **Topic tag (wajib salah satu)** — mis. `Kuliner Bogor, Food Threads`.
+- **Topic tag (opsional)** — mis. `Kuliner Bogor, Food Threads`. Bila diisi, postingan wajib punya salah satu tag ini; kosong = tanpa filter tag.
 - **Cara mencocokkan** — *Sama persis* (`Kuliner Bogor` = `kulinerbogor`) atau *Mengandung kata* (`bogor` cocok dengan *Kuliner Bogor*, *Loker Bogor*).
 - **Tag yang dihindari** — mis. `Loker Bogor, Politik`.
 - **Cari berdasarkan topic tag** (*trigger by tag*, Repliz `mode=TAG`) — kata pencarian boleh kosong.
