@@ -192,6 +192,8 @@ cat <<DONE
 
   Log:     cd $APP_DIR && docker compose -p comel logs -f web worker
   Update:  cd $APP_DIR && git pull && bash deploy/install-vps.sh
+  Auto-deploy (update sendiri tiap ada commit baru):
+           bash $APP_DIR/deploy/enable-auto-update.sh
   Simpan $APP_DIR/.env baik-baik (berisi kunci enkripsi).
 ==============================================================
 DONE
