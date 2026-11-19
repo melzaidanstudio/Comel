@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { PageHeader } from '@/components/app/app-shell';
 import { Empty, LastStatus, Pill, TagPill } from '@/components/app/common';
 import { SwitchField, TextareaField, TextField } from '@/components/app/fields';
-import { emptyTrigger, toForm, TriggerDialog } from '@/components/app/trigger-dialog';
+import { emptyTrigger, languagesLabel, toForm, TriggerDialog } from '@/components/app/trigger-dialog';
 import {
   activeHoursLabel, type AccountJ, type AppSettings, type EvaluatedPost, type Preview, type ProviderJ, type TriggerJ,
 } from '@/components/app/types';
@@ -72,6 +72,7 @@ export default function TriggersPage() {
                     <span>Akun: <b className="text-foreground">{accName(t.accountId)}</b></span>
                     <span>Cari: <b className="text-foreground">{t.queries.join(' · ') || (tags.length && t.tagAsSource ? '(halaman tag)' : '(dari ekspresi)')}</b></span>
                     {t.matchExpr ? <span>Filter: <b className="font-mono text-foreground">{t.matchExpr}</b></span> : null}
+                    {t.languages ? <span>Bahasa: <b className="text-foreground">{languagesLabel(t.languages)}</b></span> : null}
                     <span>Viral: <b className="text-foreground">{metrics || 'tanpa syarat'}</b></span>
                     <span>Umur: <b className="text-foreground">{t.maxAgeHours ? `≤ ${t.maxAgeHours} jam` : 'bebas'}</b></span>
                     <span>Jadwal: <b className="text-foreground">{t.actionsPerRun}× tiap {t.intervalMinutes} menit</b></span>

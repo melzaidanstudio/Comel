@@ -15,6 +15,7 @@ import {
 import {
   checkPost, engagementScore, hasMetricFilter, parseExpr, parseTagList, positiveTerms, type Ast,
 } from './filters';
+import { languageFilter } from './lang';
 import { generateReply, outputProblem, resolveProvider } from './llm';
 import { withAccountLock } from './locks';
 import { log } from './logger';
@@ -140,9 +141,14 @@ export async function collectCandidates(t: Trigger, a: ThreadsAccount) {
   if (!seen.size && errors.length) throw new Error(`Pencarian Repliz gagal — ${errors.join(' | ')}`);
 
   // Tahap 1: semua filter kecuali metrik viral (hasil Repliz tidak memuat metrik)
+  const langOf = await languageFilter(t.languages);
   const evaluated: EvaluatedPost[] = [];
   for (const p of seen.values()) {
     let v = checkPost(p, t, { ast, now, ownUsername: a.username, skipMetrics: true });
+    if (v.ok && langOf) {
+      const l = langOf(p.text);
+      if (!l.ok) v = { ok: false, reason: l.reason };
+    }
     if (v.ok && await hasActedOn(a.id, p.code)) v = { ok: false, reason: 'sudah pernah diproses' };
     if (v.ok && await failedAttempts(a.id, p.code) >= 2) v = { ok: false, reason: 'gagal 2x sebelumnya' };
     if (v.ok && await recentlyCommentedAuthor(a.id, p.username, t.authorCooldownHours)) {

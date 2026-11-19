@@ -3,7 +3,7 @@
 Aplikasi pribadi untuk:
 
 1. Terhubung ke Threads lewat **[Repliz](https://repliz.com)** sebagai jembatan koneksi (login resmi Threads, tanpa password/cookie)
-2. Mengatur **trigger kata kunci** atau **topic tag**, dengan **filter viralitas** (suka, balasan, repost, share, quote), **filter tag**, dan **filter waktu**
+2. Mengatur **trigger kata kunci** atau **topic tag**, dengan **filter viralitas** (suka, balasan, repost, share, quote), **filter tag**, **filter waktu**, dan **filter bahasa** (mis. hanya bahasa Indonesia)
 3. **Mencari** postingan Threads lewat Repliz (Terbaru/Teratas, rentang tanggal); angka viral diambil **[Lightpanda](https://github.com/lightpanda-io/browser)**
 4. Membuat **komentar** otomatis dengan AI di utas yang lolos filter, dikirim lewat Repliz
 5. **Membalas komentar** orang di postingan kamu (antrean komentar Repliz + webhook real-time)
@@ -149,6 +149,15 @@ npm run worker     # penjadwal (terminal lain)
 | `kuliner -promo` / `NOT promo` / `BUKAN promo` | kecualikan |
 
 Tidak peka huruf besar/kecil; nama topic tag ikut dicocokkan.
+
+### Bahasa postingan
+
+- **Semua bahasa** (default), **Bahasa Indonesia**, **Bahasa Inggris**, atau **Indonesia & Inggris**.
+- Threads dan Repliz tidak memberi data bahasa atau negara postingan, jadi Comel menebak bahasa dari teksnya
+  (kata khas Indonesia seperti *yang, banget, dong, gimana, wkwk* + detektor [`tinyld`](https://github.com/komodojp/tinyld)).
+- Penyaringannya longgar: postingan hanya dilewati bila bahasanya jelas lain. Teks yang terlalu pendek (mis. "mantap 🔥"),
+  hanya berisi link, atau meragukan tetap lolos. Bahasa Melayu ikut lolos karena hampir sama dengan bahasa Indonesia.
+- Filter **negara** tidak tersedia karena datanya tidak ada.
 
 ### Topic tag
 
