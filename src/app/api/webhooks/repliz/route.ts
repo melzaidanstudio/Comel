@@ -1,4 +1,7 @@
 import crypto from 'node:crypto';
+import { eq } from 'drizzle-orm';
+import { db } from '@/lib/db';
+import { threadsAccounts } from '@/lib/db/schema';
 import { nudgeReplies } from '@/lib/engine';
 import { log } from '@/lib/logger';
 import { ensureWebhookToken } from '@/lib/repliz';
@@ -26,7 +29,17 @@ export async function POST(req: Request) {
   if (ev.type === 'comment' && ev.platform === 'threads' && ev.accountId) {
     const n = await nudgeReplies(ev.accountId);
     const text = String((ev.data?.comment as { text?: string } | undefined)?.text || '').slice(0, 80);
-    await log('info', 'webhook', `Komentar baru di Threads (${ev.accountId})${n ? ', balas komentar dijadwalkan' : ''}: ${text}`);
+    if (n) {
+      await log('info', 'webhook', `Komentar baru di Threads (${ev.accountId}), balas komentar dijadwalkan: ${text}`);
+    } else {
+      // jelaskan kenapa tidak dibalas, supaya tidak membingungkan di Log sistem
+      const [a] = await db.select({ name: threadsAccounts.name, username: threadsAccounts.username })
+        .from(threadsAccounts).where(eq(threadsAccounts.replizAccountId, ev.accountId)).limit(1);
+      const why = a
+        ? `"Balas komentar otomatis" belum aktif di akun ${a.name}${a.username ? ` (@${a.username})` : ''} — nyalakan di menu Akun Threads → Edit`
+        : 'akun Repliz ini belum ditambahkan di Comel — tambahkan lewat Akun Threads → Tambah dari Repliz';
+      await log('warn', 'webhook', `Komentar baru di Threads (${ev.accountId}) tidak dibalas: ${why}. Isi: ${text}`);
+    }
   } else if (ev.type === 'keyword_match') {
     await log('info', 'webhook', `Keyword Watch menemukan postingan (${ev.accountId})`);
   }
