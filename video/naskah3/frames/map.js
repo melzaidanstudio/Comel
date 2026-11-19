@@ -4,10 +4,10 @@
   if (t) document.documentElement.setAttribute('data-t', t);
 })();
 
-// Logo kecil comel di pojok (sejak detik 0)
-const PANDA = '<svg viewBox="0 0 64 64"><circle cx="16" cy="16" r="10" fill="currentColor"/><circle cx="48" cy="16" r="10" fill="currentColor"/><circle cx="32" cy="36" r="24" fill="#fff" stroke="currentColor" stroke-width="3"/><ellipse cx="23" cy="34" rx="6" ry="8" fill="#141414" transform="rotate(-20 23 34)"/><ellipse cx="41" cy="34" rx="6" ry="8" fill="#141414" transform="rotate(20 41 34)"/><circle cx="32" cy="46" r="3.5" fill="#141414"/></svg>';
+// Logo comel (anak ayam chibi, sumber: assets/comel-chick.svg) di pojok sejak detik 0
+const CHICK = '<svg viewBox="0 0 64 64"> <g stroke="#f08a24" stroke-width="2.6" stroke-linecap="round" fill="none"> <path d="M25 55 l-3.5 4.5 M25 55 v5.5 M25 55 l3.5 4.5"/> <path d="M39 55 l-3.5 4.5 M39 55 v5.5 M39 55 l3.5 4.5"/> </g> <path d="M31 13 C 27 5, 33 2, 32.5 9.5 C 35 3.5, 41 6, 35 12.5 Z" fill="#ffd23f" stroke="#e8a317" stroke-width="1.6" stroke-linejoin="round"/> <ellipse cx="32" cy="35" rx="23.5" ry="22" fill="#ffd23f" stroke="#e8a317" stroke-width="2"/> <ellipse cx="32" cy="44" rx="13" ry="9" fill="#ffe68a"/> <path d="M9.5 37 C 4 36.5, 3.5 44, 9 45.5 C 11.5 46, 13 44, 12.5 42" fill="#ffc21f" stroke="#e8a317" stroke-width="1.6" stroke-linejoin="round"/> <path d="M54.5 37 C 60 36.5, 60.5 44, 55 45.5 C 52.5 46, 51 44, 51.5 42" fill="#ffc21f" stroke="#e8a317" stroke-width="1.6" stroke-linejoin="round"/> <ellipse cx="23" cy="31" rx="4.3" ry="5.2" fill="#2b1d12"/> <ellipse cx="41" cy="31" rx="4.3" ry="5.2" fill="#2b1d12"/> <circle cx="24.6" cy="28.8" r="1.7" fill="#fff"/><circle cx="42.6" cy="28.8" r="1.7" fill="#fff"/> <circle cx="21.8" cy="33.2" r=".9" fill="#fff"/><circle cx="39.8" cy="33.2" r=".9" fill="#fff"/> <ellipse cx="16.5" cy="39" rx="3.8" ry="2.3" fill="#ff8fa3" opacity=".8"/> <ellipse cx="47.5" cy="39" rx="3.8" ry="2.3" fill="#ff8fa3" opacity=".8"/> <path d="M28.6 36.6 Q32 33.6 35.4 36.6 Q32 40.6 28.6 36.6 Z" fill="#ff9f1c" stroke="#e07b0f" stroke-width="1" stroke-linejoin="round"/> </svg>';
 document.addEventListener('DOMContentLoaded', () => {
-  const l = document.createElement('div'); l.className = 'logo'; l.innerHTML = PANDA + 'comel'; document.body.appendChild(l);
+  const l = document.createElement('div'); l.className = 'logo'; l.innerHTML = CHICK + 'comel'; document.body.appendChild(l);
 });
 
 // Peta kota generik (bukan peta asli): blok, jalan, sungai, taman. Seed tetap agar tiap frame sama.

@@ -39,7 +39,6 @@ const ICON = {
   check: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>',
   eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>',
 };
-const PANDA_BIG = '<svg viewBox="0 0 64 64"><circle cx="16" cy="16" r="10" fill="currentColor"/><circle cx="48" cy="16" r="10" fill="currentColor"/><circle cx="32" cy="36" r="24" fill="#fff" stroke="currentColor" stroke-width="3"/><ellipse cx="23" cy="34" rx="6" ry="8" fill="#141414" transform="rotate(-20 23 34)"/><ellipse cx="41" cy="34" rx="6" ry="8" fill="#141414" transform="rotate(20 41 34)"/><circle cx="32" cy="46" r="3.5" fill="#141414"/></svg>';
 
 // Teks layar: spans [{cls, text}], muncul bertahap, keluar cepat
 function makeCap(parent, spans) {
@@ -268,7 +267,7 @@ layer('S08', 'S09', 's-gain', (el) => {
   const o = {};
   o.phone = h('div', 'phone', el);
   o.screen = h('div', 'screen', o.phone);
-  o.panda = h('div', 'bigpanda', o.screen, PANDA_BIG);
+  o.panda = h('div', 'bigpanda', o.screen, CHICK);
   o.field = h('div', 'field', o.screen, ICON.search + '<span class="t"></span><i class="caret"></i>', 'width:450px;font-size:42px;gap:12px;padding:0 24px');
   o.back = h('div', 'back', o.phone);
   o.cap = makeCap(el, [{ cls: 'sm', text: 'KATA KUNCI, CONTOH:' }, { text: '“KULINER BOGOR”' }]);

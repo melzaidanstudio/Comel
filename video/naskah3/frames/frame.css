@@ -65,7 +65,7 @@ body::after { content: ""; position: absolute; inset: 0; background: var(--textu
 
 /* Logo kecil di pojok sejak detik 0 */
 .logo { position: absolute; left: 72px; top: 262px; z-index: 6; display: inline-flex; align-items: center; gap: 10px; padding: 8px 18px 8px 10px; border-radius: 999px; background: var(--card); color: var(--ink); font-family: var(--display); font-weight: 800; font-size: 32px; box-shadow: 0 6px 18px rgba(0,0,0,.12); }
-.logo svg { width: 40px; height: 40px; }
+.logo svg { width: 46px; height: 46px; }
 
 /* Teks layar: blok berlapis, rata kiri, sepertiga atas */
 .cap { position: absolute; left: 72px; right: 120px; top: 350px; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; z-index: 5; }
