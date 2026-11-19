@@ -197,3 +197,12 @@ export function hasMetricFilter(f: PostFilter): boolean {
 export function engagementScore(p: Post): number {
   return p.likes + p.replies * 3 + p.reposts * 4 + p.shares * 2 + p.quotes * 4;
 }
+
+/** Trigger harus punya sumber pencarian: kata pencarian, ekspresi dengan kata positif, atau topic tag sebagai sumber. */
+export function hasSearchSource(t: { queries?: string[]; matchExpr?: string; topicTags?: string; tagAsSource?: boolean }): boolean {
+  if ((t.queries || []).some((q) => q.trim())) return true;
+  if (t.tagAsSource && parseTagList(t.topicTags || '').length) return true;
+  try { const ast = parseExpr(t.matchExpr || ''); return Boolean(ast && positiveTerms(ast).length); } catch { return false; }
+}
+
+export const NO_SOURCE_MESSAGE = 'Isi minimal salah satu: kata pencarian, ekspresi kata kunci, atau topic tag (dengan "Cari juga berdasarkan topic tag" menyala).';

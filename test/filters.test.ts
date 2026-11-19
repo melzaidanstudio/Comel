@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { checkPost, evalExpr, parseExpr, positiveTerms, normTag, parseTagList, tagMatches } from '../src/lib/filters';
+import { checkPost, evalExpr, hasSearchSource, parseExpr, positiveTerms, normTag, parseTagList, tagMatches } from '../src/lib/filters';
 import type { Post } from '../src/lib/types';
 
 const now = Math.floor(Date.now() / 1000);
@@ -80,4 +80,14 @@ test('rekomendasi: kata utama & aturan', async () => {
   assert.equal(e.name, 'Komentator awal Bogor');
   assert.equal(e.dryRun, true);
   assert.equal(e.minLikes + e.minReplies, 0);
+});
+
+test('hasSearchSource: trigger tanpa sumber pencarian ditolak', () => {
+  const base = { queries: [] as string[], matchExpr: '', topicTags: '', tagAsSource: true };
+  assert.equal(hasSearchSource(base), false);
+  assert.equal(hasSearchSource({ ...base, queries: ['kuliner bogor'] }), true);
+  assert.equal(hasSearchSource({ ...base, topicTags: 'Kuliner Bogor' }), true);
+  assert.equal(hasSearchSource({ ...base, topicTags: 'Kuliner Bogor', tagAsSource: false }), false);
+  assert.equal(hasSearchSource({ ...base, matchExpr: 'bogor -loker' }), true);
+  assert.equal(hasSearchSource({ ...base, matchExpr: '-loker' }), false);
 });

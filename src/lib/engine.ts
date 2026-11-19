@@ -13,7 +13,7 @@ import {
   type NewAction,
 } from './actions';
 import {
-  checkPost, engagementScore, hasMetricFilter, parseExpr, parseTagList, positiveTerms, type Ast,
+  checkPost, engagementScore, hasMetricFilter, NO_SOURCE_MESSAGE, parseExpr, parseTagList, positiveTerms, type Ast,
 } from './filters';
 import { generateReply, outputProblem, resolveProvider } from './llm';
 import { withAccountLock } from './locks';
@@ -113,7 +113,7 @@ export async function collectCandidates(t: Trigger, a: ThreadsAccount) {
   // dengan sumber tag, query otomatis dari ekspresi tidak dipakai (hanya query manual)
   const queries = buildQueries(t.queries || [], tagSources.length ? null : ast);
   if (!queries.length && !tagSources.length) {
-    throw new Error('Trigger belum punya kata pencarian, ekspresi kata kunci, atau topic tag (dengan opsi "cari lewat topic tag")');
+    throw new Error(`Trigger ini belum bisa mencari postingan. ${NO_SOURCE_MESSAGE} Buka Edit untuk melengkapinya.`);
   }
 
   const now = nowSec();
