@@ -59,3 +59,20 @@ test('ekspresi: -(a OR b) = NOT (a OR b)', () => {
   assert.deepEqual(ast, { op: 'AND', a: { op: 'TERM', v: 'kuliner' }, b: { op: 'NOT', a: { op: 'OR', a: { op: 'TERM', v: 'promo' }, b: { op: 'TERM', v: 'diskon' } } } });
   assert.deepEqual(positiveTerms(ast!), ['kuliner']);
 });
+
+test('rekomendasi: kata utama & aturan', async () => {
+  const { guessKeyword, viralRules, earlyQueries, earlyRules } = await import('../src/lib/recommend');
+  const t = { name: 'kuliner bogor viral', queries: ['kuliner bogor'], topicTags: 'Kuliner Bogor', matchExpr: '', excludeTags: '' };
+  assert.equal(guessKeyword(t), 'bogor');
+  assert.equal(guessKeyword({ ...t, topicTags: '', queries: [], name: 'Kopi Depok' }), 'depok');
+  const v = viralRules(t, 'bogor');
+  assert.equal(v.matchExpr, 'bogor -loker -lowongan -dijual');
+  assert.equal(v.excludeTags, 'Loker Bogor');
+  assert.equal(v.metricLogic, 'any');
+  assert.ok(parseExpr(v.matchExpr));
+  assert.deepEqual(earlyQueries(t, 'bogor'), ['kuliner bogor', 'makanan bogor', 'jajanan bogor']);
+  const e = earlyRules(t, 'bogor', ['kuliner bogor']);
+  assert.equal(e.name, 'Komentator awal Bogor');
+  assert.equal(e.dryRun, true);
+  assert.equal(e.minLikes + e.minReplies, 0);
+});

@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { Copy, Eye, Pencil, Play, Plus, Trash2, Wand2 } from 'lucide-react';
+import { Copy, Eye, Lightbulb, Pencil, Play, Plus, Trash2, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/app/app-shell';
 import { Empty, LastStatus, Pill, TagPill } from '@/components/app/common';
+import { SwitchField, TextareaField, TextField } from '@/components/app/fields';
 import { emptyTrigger, toForm, TriggerDialog } from '@/components/app/trigger-dialog';
 import {
   activeHoursLabel, type AccountJ, type AppSettings, type EvaluatedPost, type Preview, type ProviderJ, type TriggerJ,
@@ -13,10 +14,11 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ago, api, num, useAction, useApi } from '@/lib/client';
+import { earlyQueries, guessKeyword, keywordExpr } from '@/lib/recommend';
 
 export default function TriggersPage() {
   const trigs = useApi<TriggerJ[]>('/triggers');
@@ -29,6 +31,7 @@ export default function TriggersPage() {
   });
   const openDlg = (editId: number | null, initial: ReturnType<typeof emptyTrigger>) => setDlg((d) => ({ open: true, editId, initial, key: d.key + 1 }));
   const [preview, setPreview] = useState<{ t: TriggerJ; data: Preview } | null>(null);
+  const [recommend, setRecommend] = useState<TriggerJ | null>(null);
 
   const accounts = accs.data || [];
   const accName = (id: number) => accounts.find((a) => a.id === id)?.name ?? `#${id}`;
@@ -92,6 +95,7 @@ export default function TriggersPage() {
                     const r = await api<{ status: string }>(`/triggers/${t.id}/run`, { method: 'POST' });
                     toast.success(`Selesai: ${r.status}`); await trigs.reload();
                   })}><Play />{busy === `run${t.id}` ? 'Berjalan…' : 'Jalankan'}</Button>
+                  <Button size="sm" variant="outline" onClick={() => setRecommend(t)}><Lightbulb />Rekomendasi</Button>
                   <Button size="sm" variant="ghost" onClick={() => openDlg(t.id, toForm(t))}><Pencil />Edit</Button>
                   <Button size="sm" variant="ghost" onClick={() => openDlg(null, { ...toForm(t), name: `${t.name} (salinan)` })}><Copy />Duplikat</Button>
                   <Button size="sm" variant="ghost" className="text-destructive" onClick={() => {
@@ -108,6 +112,7 @@ export default function TriggersPage() {
       <TriggerDialog key={dlg.key} open={dlg.open} onOpenChange={(o) => setDlg((d) => ({ ...d, open: o }))} initial={dlg.initial} editId={dlg.editId}
         accounts={accounts} providers={provs.data || []} settings={settings.data} onSaved={() => void trigs.reload()} />
       {preview ? <PreviewDialog t={preview.t} data={preview.data} onClose={() => setPreview(null)} /> : null}
+      {recommend ? <RecommendDialog key={recommend.id} t={recommend} onClose={() => setRecommend(null)} onDone={() => void trigs.reload()} /> : null}
     </>
   );
 }
@@ -173,6 +178,70 @@ function PreviewDialog({ t, data, onClose }: { t: TriggerJ; data: Preview; onClo
             </TableBody>
           </Table>
         </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Terapkan aturan yang disarankan (hasil uji pada data Threads asli) dalam 1–2 ketukan. */
+function RecommendDialog({ t, onClose, onDone }: { t: TriggerJ; onClose: () => void; onDone: () => void }) {
+  const [kw, setKw] = useState(() => guessKeyword(t));
+  const [applyViral, setApplyViral] = useState(true);
+  const [createEarly, setCreateEarly] = useState(true);
+  const [queriesText, setQueriesText] = useState(() => earlyQueries(t, guessKeyword(t) || 'kata').join('\n'));
+  const { busy, run } = useAction();
+  const k = kw.trim().toLowerCase();
+  const changeKw = (v: string) => { setKw(v); setQueriesText(earlyQueries(t, v.trim().toLowerCase() || 'kata').join('\n')); };
+
+  const apply = () => run('rec', async () => {
+    const r = await api<{ message: string }>(`/triggers/${t.id}/recommend`, {
+      method: 'POST',
+      body: { keyword: k, applyViral, createEarly, earlyQueries: queriesText.split('\n').map((s) => s.trim()).filter(Boolean) },
+    });
+    toast.success(`Diterapkan: ${r.message}. Tekan Preview untuk melihat hasilnya.`);
+    onDone();
+    onClose();
+  });
+
+  return (
+    <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="flex max-h-[92svh] flex-col gap-0 p-0 sm:max-w-xl">
+        <DialogHeader className="border-b p-5">
+          <DialogTitle>Rekomendasi: {t.name}</DialogTitle>
+          <DialogDescription>Aturan yang terbukti menghasilkan kandidat pada data Threads asli. Nama, akun, instruksi AI & dry-run trigger ini tidak diubah.</DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-5 overflow-y-auto p-5">
+          <TextField label="Kata utama (lokasi/topik)" value={kw} onChange={changeKw} placeholder="bogor"
+            help="Postingan harus memuat kata ini. Biasanya nama kota, mis. bogor." />
+
+          <div className="flex flex-col gap-2 rounded-lg border p-3">
+            <SwitchField label={`Perbarui aturan "${t.name}"`} checked={applyViral} onChange={setApplyViral} />
+            <ul className="ml-1 list-disc pl-4 text-xs text-muted-foreground">
+              <li>Topic tag mengandung &quot;{k || '…'}&quot;, hindari tag &quot;Loker …&quot;</li>
+              <li>Teks harus cocok: <code>{k ? keywordExpr(k) : '…'}</code></li>
+              <li>Viral: suka ≥ 20 <b>atau</b> balasan ≥ 5</li>
+              <li>Terbaru dulu, umur ≤ 72 jam, 3 komentar tiap 15 menit</li>
+            </ul>
+          </div>
+
+          <div className="flex flex-col gap-2 rounded-lg border p-3">
+            <SwitchField label={`Buat trigger "Komentator awal${k ? ` ${k[0].toUpperCase()}${k.slice(1)}` : ''}"`} checked={createEarly} onChange={setCreateEarly} />
+            <ul className="ml-1 list-disc pl-4 text-xs text-muted-foreground">
+              <li>Postingan baru (≤ 24 jam) tanpa syarat viral — jadi pengomentar awal</li>
+              <li>Mulai dalam <b>dry-run</b>; matikan setelah hasilnya pas</li>
+            </ul>
+            {createEarly ? (
+              <TextareaField label="Kata pencarian (satu per baris)" value={queriesText} onChange={setQueriesText} rows={3} />
+            ) : null}
+          </div>
+          <p className="text-xs text-muted-foreground">Bila &quot;maks postingan dicek metrik&quot; di Pengaturan masih di bawah 30, ikut dinaikkan ke 30.</p>
+        </div>
+        <DialogFooter className="m-0">
+          <Button variant="outline" onClick={onClose}>Batal</Button>
+          <Button onClick={apply} disabled={busy === 'rec' || k.length < 2 || (!applyViral && !createEarly)}>
+            {busy === 'rec' ? 'Menerapkan…' : 'Terapkan'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
