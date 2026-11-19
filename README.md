@@ -79,7 +79,26 @@ Lalu buka `https://comel.<ip-dengan-minus>.sslip.io` di browser HP → **buat ak
 | `worker` | Penjadwal trigger & balas komentar |
 | `caddy` | HTTPS otomatis (profil `https`) |
 
-Update: `cd /opt/comel && git pull && bash deploy/install-vps.sh`
+Update manual: `cd /opt/comel && git pull && bash deploy/install-vps.sh`
+
+### Auto-deploy (tanpa membuka VPS lagi)
+
+Jalankan **sekali** di VPS:
+
+```bash
+cd /opt/comel && git pull && bash deploy/enable-auto-update.sh
+```
+
+Setelah itu VPS mengecek GitHub tiap 5 menit (systemd timer `comel-auto-update`). Bila ada commit baru di branch `main`,
+VPS menariknya dan menjalankan `deploy/install-vps.sh` sendiri. Jadi cukup merge PR, dan ±5–15 menit kemudian Comel sudah ter-update.
+
+- Repo private: skrip meminta **token GitHub** sekali (Fine-grained token, akses *Contents: Read-only* ke repo ini).
+  Token disimpan di `/root/.git-credentials-comel` (izin 600) dan hanya dipakai repo ini.
+- Commit yang gagal dipasang tidak dicoba terus-menerus; dicoba lagi saat ada commit baru.
+- Perubahan lokal di `/opt/comel` yang bentrok dengan commit baru membuat update dilewati (lihat log).
+- Log: `tail -n 50 /var/log/comel-auto-update.log` · status: `systemctl list-timers comel-auto-update.timer`
+- Pasang ulang commit yang sama: `rm /var/lib/comel-auto-update/last && systemctl start comel-auto-update`
+- Matikan: `bash /opt/comel/deploy/enable-auto-update.sh --off`
 
 Pindah ke domain/subdomain sendiri: buat **A record** (mis. `comel` → IP VPS) di DNS domain Anda, lalu
 `cd /opt/comel && git pull && COMEL_DOMAIN=comel.domainanda.com bash deploy/install-vps.sh`.
