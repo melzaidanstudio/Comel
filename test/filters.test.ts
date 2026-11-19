@@ -66,7 +66,12 @@ test('rekomendasi: kata utama & aturan', async () => {
   assert.equal(guessKeyword(t), 'bogor');
   assert.equal(guessKeyword({ ...t, topicTags: '', queries: [], name: 'Kopi Depok' }), 'depok');
   const v = viralRules(t, 'bogor');
-  assert.equal(v.matchExpr, 'bogor -loker -lowongan -dijual');
+  assert.equal(v.matchExpr, 'bogor (kuliner OR makan OR jajan OR kopi OR resto OR cafe OR kafe OR warung OR enak OR menu OR kedai) -loker -lowongan -dijual');
+  const ast = parseExpr(v.matchExpr)!;
+  assert.equal(evalExpr(ast, 'Bogor hujan guys'), false);
+  assert.equal(evalExpr(ast, 'CRV 2 Ciomas Bogor'), false);
+  assert.equal(evalExpr(ast, 'Tempat makan enak di Bogor'), true);
+  assert.equal(evalExpr(ast, 'Loker kuliner Bogor'), false);
   assert.equal(v.excludeTags, 'Loker Bogor');
   assert.equal(v.metricLogic, 'any');
   assert.ok(parseExpr(v.matchExpr));

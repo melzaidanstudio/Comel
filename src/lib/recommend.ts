@@ -28,8 +28,18 @@ export function guessKeyword(t: TriggerLike): string {
   return '';
 }
 
-/** Ekspresi teks: wajib memuat kata utama, tanpa lowongan/jual-beli. */
-export const keywordExpr = (kw: string) => [kw.includes(' ') ? `"${kw}"` : kw, ...NOISE.map((n) => `-${n}`)].join(' ');
+/** Kata yang menandakan postingan memang soal makanan (cocok sebagai awalan: "makan" ⊂ "makanan"). */
+const FOOD_TERMS = ['kuliner', 'makan', 'jajan', 'kopi', 'resto', 'cafe', 'kafe', 'warung', 'enak', 'menu', 'kedai'];
+const isFood = (t: TriggerLike) => FOOD.test([t.name, t.topicTags, ...t.queries].join(' '));
+
+/**
+ * Ekspresi teks: wajib memuat kata utama, tanpa lowongan/jual-beli. Untuk tema kuliner juga wajib
+ * memuat kata makanan — kalau tidak, "Bogor hujan guys" atau "CRV 2 Ciomas Bogor" ikut lolos.
+ */
+export function keywordExpr(kw: string, food = false) {
+  const main = kw.includes(' ') ? `"${kw}"` : kw;
+  return [main, ...(food ? [`(${FOOD_TERMS.join(' OR ')})`] : []), ...NOISE.map((n) => `-${n}`)].join(' ');
+}
 
 /** Aturan untuk trigger yang sudah ada ("ramai"): hanya filter & jadwal yang diubah. */
 export function viralRules(t: TriggerLike, kw: string) {
@@ -40,7 +50,7 @@ export function viralRules(t: TriggerLike, kw: string) {
     tagMatch: 'contains' as const,
     tagAsSource: true,
     excludeTags: [...exclude].join(', '),
-    matchExpr: keywordExpr(kw),
+    matchExpr: keywordExpr(kw, isFood(t)),
     minLikes: 20, minReplies: 5, minReposts: 0, minShares: 0, minQuotes: 0, metricLogic: 'any' as const,
     maxAgeHours: 72, minAgeMinutes: 0, sortBy: 'newest' as const,
     actionsPerRun: 3, intervalMinutes: 15, authorCooldownHours: 168,
@@ -50,8 +60,7 @@ export function viralRules(t: TriggerLike, kw: string) {
 /** Kata pencarian untuk "Komentator awal": kata pencarian trigger + variasi kuliner bila temanya kuliner. */
 export function earlyQueries(t: TriggerLike, kw: string): string[] {
   const out = t.queries.map((q) => q.trim()).filter(Boolean);
-  const food = FOOD.test([t.name, t.topicTags, ...t.queries].join(' '));
-  if (food) out.push(`kuliner ${kw}`, `makanan ${kw}`, `jajanan ${kw}`);
+  if (isFood(t)) out.push(`kuliner ${kw}`, `makanan ${kw}`, `jajanan ${kw}`);
   else if (!out.length) out.push(kw);
   return [...new Set(out.map((q) => q.toLowerCase()))].slice(0, 8);
 }
@@ -65,7 +74,7 @@ export function earlyRules(t: TriggerLike, kw: string, queries: string[]) {
     tagMatch: 'contains' as const,
     tagAsSource: false,
     excludeTags: '',
-    matchExpr: keywordExpr(kw),
+    matchExpr: keywordExpr(kw, isFood(t)),
     minLikes: 0, minReplies: 0, minReposts: 0, minShares: 0, minQuotes: 0, metricLogic: 'any' as const,
     maxAgeHours: 24, minAgeMinutes: 0, sortBy: 'newest' as const,
     actionsPerRun: 3, intervalMinutes: 15, authorCooldownHours: 168,

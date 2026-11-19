@@ -218,7 +218,7 @@ function RecommendDialog({ t, onClose, onDone }: { t: TriggerJ; onClose: () => v
             <SwitchField label={`Perbarui aturan "${t.name}"`} checked={applyViral} onChange={setApplyViral} />
             <ul className="ml-1 list-disc pl-4 text-xs text-muted-foreground">
               <li>Topic tag mengandung &quot;{k || '…'}&quot;, hindari tag &quot;Loker …&quot;</li>
-              <li>Teks harus cocok: <code>{k ? keywordExpr(k) : '…'}</code></li>
+              <li>Teks harus cocok: <code>{k ? keywordExpr(k, /kuliner|makan|jajan|food|resto|kafe|cafe|kopi|warung/i.test([t.name, t.topicTags, ...t.queries].join(' '))) : '…'}</code></li>
               <li>Viral: suka ≥ 20 <b>atau</b> balasan ≥ 5</li>
               <li>Terbaru dulu, umur ≤ 72 jam, 3 komentar tiap 15 menit</li>
             </ul>
