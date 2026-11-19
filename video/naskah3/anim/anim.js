@@ -393,7 +393,7 @@ layer('S13', 'S14', 's-offer', (el) => {
     h('div', 'bar', m, null, 'width:90%'); h('div', 'cm', m);
     return m;
   });
-  o.cap = makeCap(el, [{ cls: 'sm', text: 'CONTOH NYATA:' }, { cls: 'md', text: '43 KOMENTAR/24 JAM · SEMUA DI POSTINGAN ORANG LAIN' }]);
+  o.cap = makeCap(el, [{ cls: 'sm', text: 'CONTOH NYATA DARI DASHBOARD:' }, { cls: 'md', text: '43 KOMENTAR/24 JAM · SEMUA DI POSTINGAN ORANG LAIN' }]);
   return o;
 }, (o, lt, d) => {
   capAt(o.cap, lt, 0.3, Infinity);
@@ -469,14 +469,16 @@ layer('S15', 'S16', 's-offer', (el) => {
 layer('S16', 'S17', '', (el) => {
   el.style.background = 'var(--label-bg)';
   const o = {};
-  o.lines = ['COBA DULU,', 'KIRIM BELAKANGAN'].map((t, i) => h('span', '', null, t));
+  o.lines = ['UJI DULU,', 'KIRIM BELAKANGAN'].map((t, i) => h('span', '', null, t));
   o.box = h('div', 'promo', el); o.lines.forEach((l) => o.box.appendChild(l));
+  o.note = h('div', 'abs', el, 'Pakai kunci AI sendiri', 'left:72px;top:1060px;font-family:var(--body);font-weight:600;font-size:44px;color:var(--ink);padding:10px 22px;border-radius:999px;border:3px solid var(--ink)');
   return o;
 }, (o, lt) => {
   o.lines.forEach((l, i) => {
     const p = E.back(P(lt, 0.1 + i * 0.25, 0.5 + i * 0.25));
     l.style.transform = `translateY(${(1 - p) * 60}px) scale(${0.9 + 0.1 * p})`; l.style.opacity = clamp(p * 1.5);
   });
+  show(o.note, E.out(P(lt, 0.8, 1.1)));
 });
 
 // L13 CTA: S17–akhir

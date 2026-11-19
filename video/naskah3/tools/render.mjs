@@ -22,8 +22,8 @@ const CUES = [
   ['S01', 'orang di kotamu'], ['S02', 'yang jawab'], ['S03', 'ini nyata'], ['S04', 'satu pertanyaan'],
   ['S05', 'satu lagi'], ['S06', 'penanyanya'], ['S07', 'tapi kamu'], ['S08', 'comel yang mantengin'],
   ['S09', 'atur syaratnya'], ['S10', 'kata yang kamu hindari'], ['S11', 'comel menulis'], ['S12', 'bawaannya'],
-  ['S13', 'contoh nyata dari dashboard'], ['S14', 'mau coba dulu'], ['S15', 'telat lima jam'],
-  ['S16', 'coba dulu, kirim'], ['S17', 'pertanyaan berikutnya'],
+  ['S13', 'contoh nyata:'], ['S14', 'belum yakin'], ['S15', 'telat lima jam'],
+  ['S16', 'uji dulu, kirim'], ['S17', 'pertanyaan berikutnya'],
 ];
 // Jeda tambahan hanya di pergantian babak
 const GAP_AT = ['S03', 'S07', 'S13', 'S16', 'S17'];
