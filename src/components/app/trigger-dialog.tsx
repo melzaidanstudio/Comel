@@ -15,12 +15,14 @@ type Form = Omit<TriggerJ, 'id' | 'createdAt' | 'nextRunAt' | 'lastRunAt' | 'las
 
 /**
  * Nilai yang disarankan untuk filter & jadwal (dipakai trigger baru dan tombol "Default").
- * Urutan "Teratas" karena syarat viral hanya dicek untuk sejumlah postingan pertama per putaran.
+ * Diuji pada data Threads asli (kuliner Bogor, Nov 2026): dalam 72 jam postingan niche lokal jarang
+ * lewat 20 suka, dan urutan "Teratas" dari Repliz tidak memberi postingan yang lebih ramai.
+ * Jadi: syarat viral ringan dengan logika ATAU, urutan terbaru, tag dicocokkan "mengandung kata".
  */
 const RECOMMENDED = {
-  includeReplies: false, tagMatch: 'exact', tagAsSource: true,
-  minLikes: 100, minReplies: 50, minReposts: 0, minShares: 50, minQuotes: 0, metricLogic: 'all',
-  maxAgeHours: 72, minAgeMinutes: 0, activeHours: '', sortBy: 'engagement',
+  includeReplies: false, tagMatch: 'contains', tagAsSource: true,
+  minLikes: 20, minReplies: 5, minReposts: 0, minShares: 0, minQuotes: 0, metricLogic: 'any',
+  maxAgeHours: 72, minAgeMinutes: 0, activeHours: '', sortBy: 'newest',
   actionsPerRun: 3, intervalMinutes: 15, authorCooldownHours: 168,
 } satisfies Partial<Form>;
 
