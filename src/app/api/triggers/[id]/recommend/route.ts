@@ -40,6 +40,7 @@ export const POST = route(async (req, ctx: Ctx) => {
       ...earlyRules(t, kw, queries),
       accountId: t.accountId, enabled: t.enabled, providerId: t.providerId, instruction: t.instruction,
       activeHours: t.activeHours, excludeWords: t.excludeWords, excludeUsers: t.excludeUsers, includeReplies: false,
+      languages: t.languages,
       nextRunAt: null,
     }).returning({ id: triggers.id, name: triggers.name });
     created = n.id;

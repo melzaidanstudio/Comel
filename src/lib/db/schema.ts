@@ -128,6 +128,7 @@ export const triggers = pgTable('triggers', {
   excludeWords: text().notNull().default(''),
   excludeUsers: text().notNull().default(''),
   includeReplies: boolean().notNull().default(false),
+  languages: text().notNull().default(''), // kode ISO 639-1 dipisah koma, mis. "id"; kosong = semua bahasa
   // topic tag
   topicTags: text().notNull().default(''),
   excludeTags: text().notNull().default(''),

@@ -69,6 +69,7 @@ export const triggerSchema = z.object({
   excludeWords: z.string().max(2000),
   excludeUsers: z.string().max(2000),
   includeReplies: z.boolean(),
+  languages: z.string().max(50).regex(/^([a-z]{2}(,[a-z]{2})*)?$/, 'kode bahasa tidak valid (mis. "id" atau "id,en")'),
   topicTags: z.string().max(2000),
   excludeTags: z.string().max(2000),
   tagMatch: z.enum(['exact', 'contains']),

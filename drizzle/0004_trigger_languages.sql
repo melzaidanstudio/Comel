@@ -1,0 +1,1 @@
+ALTER TABLE "triggers" ADD COLUMN "languages" text DEFAULT '' NOT NULL;

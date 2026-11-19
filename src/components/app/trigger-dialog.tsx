@@ -26,9 +26,21 @@ const RECOMMENDED = {
   actionsPerRun: 3, intervalMinutes: 15, authorCooldownHours: 168,
 } satisfies Partial<Form>;
 
+/** Pilihan filter bahasa. Nilai disimpan sebagai kode ISO 639-1 dipisah koma; kosong = semua bahasa. */
+const ANY_LANG = 'any';
+export const LANGUAGE_OPTIONS: Array<[string, string]> = [
+  [ANY_LANG, 'Semua bahasa'],
+  ['id', 'Bahasa Indonesia'],
+  ['en', 'Bahasa Inggris'],
+  ['id,en', 'Bahasa Indonesia & Inggris'],
+];
+export function languagesLabel(v: string): string {
+  return LANGUAGE_OPTIONS.find(([k]) => k === (v || ANY_LANG))?.[1] ?? v;
+}
+
 export function emptyTrigger(accountId: number): Form {
   return {
-    name: '', accountId, enabled: true, queriesText: '', matchExpr: '', excludeWords: '', excludeUsers: '',
+    name: '', accountId, enabled: true, queriesText: '', matchExpr: '', excludeWords: '', excludeUsers: '', languages: '',
     topicTags: '', excludeTags: '', instruction: '', providerId: null, dryRun: true,
     ...RECOMMENDED,
   };
@@ -105,6 +117,10 @@ export function TriggerDialog({ open, onOpenChange, initial, editId, accounts, p
               placeholder='kuliner AND (bogor OR "kota hujan") -promo' help="AND/DAN, OR/ATAU, NOT/BUKAN atau -kata, kurung, &quot;frasa&quot;. Nama topic tag ikut dicocokkan." />
             <TextField label="Kata yang dihindari" value={f.excludeWords} onChange={set('excludeWords')} placeholder="giveaway, judi" help="Dipisah koma" />
             <TextField label="User yang dihindari" value={f.excludeUsers} onChange={set('excludeUsers')} placeholder="@akunpesaing" help="Dipisah koma" />
+            <SelectField className="sm:col-span-2" label="Bahasa postingan" value={f.languages || ANY_LANG}
+              onChange={(v) => set('languages')(v === ANY_LANG ? '' : v)}
+              options={LANGUAGE_OPTIONS.some(([k]) => k === (f.languages || ANY_LANG)) ? LANGUAGE_OPTIONS : [...LANGUAGE_OPTIONS, [f.languages, f.languages]]}
+              help="Ditebak dari teks postingan, karena Threads tidak memberi data bahasa/negara. Bahasa Melayu ikut lolos (hampir sama dengan Indonesia); teks yang terlalu pendek juga diloloskan." />
             <SwitchField className="sm:col-span-2" label="Ikutkan postingan yang berupa balasan (bukan utas utama)" checked={f.includeReplies} onChange={set('includeReplies')}
               help="Repliz tidak menandai balasan; balasan baru terdeteksi bila metrik viral dicek (trigger punya syarat viral)." />
           </Section>
