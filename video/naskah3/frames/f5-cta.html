@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><title>F5 CTA</title>
+<link rel="stylesheet" href="frame.css">
+<style>
+  #map { position: absolute; inset: 0; width: 1080px; height: 1920px; }
+  .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,238,244,.95) 0%, rgba(255,238,244,.2) 40%, rgba(255,238,244,.2) 62%, rgba(255,238,244,.95) 86%); }
+  .pin { position: absolute; width: 22px; height: 22px; border-radius: 50%; background: #b9b0e8; box-shadow: 0 0 0 6px rgba(185,176,232,.35); }
+  .me { position: absolute; left: 470px; top: 1010px; width: 140px; height: 140px; border-radius: 50%; background: var(--pink); box-shadow: 0 0 0 26px rgba(255,126,168,.3), 0 0 0 70px rgba(255,126,168,.14), 0 0 160px 40px rgba(255,126,168,.5); display: grid; place-items: center; }
+  .me svg { width: 70px; height: 70px; }
+  .q2 { position: absolute; left: 640px; top: 880px; width: 120px; height: 96px; background: var(--white); border-radius: 30px 30px 30px 6px; display: grid; place-items: center; font-family: var(--display); font-weight: 800; font-size: 72px; color: var(--ink); box-shadow: 0 12px 30px rgba(35,33,74,.15); }
+  .cap { top: 300px; }
+  .cap span.sub { font-size: 52px; background: var(--pink); color: var(--ink); }
+  .follow { position: absolute; left: 72px; right: 120px; top: 1270px; height: 140px; background: var(--ink); color: var(--white); font-size: 60px; }
+  .brand { color: var(--ink); top: 1440px; bottom: auto; }
+</style></head>
+<body class="ink" style="background:var(--pink-soft)">
+<svg id="map"></svg>
+<div class="shade"></div>
+<div id="pins"></div>
+<div class="q2">?</div>
+<div class="me"><svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-5h15L21 9"/><path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/><path d="M5 13v7h14v-7"/><path d="M10 20v-4h4v4"/></svg></div>
+
+<div class="cap"><span>FOLLOW @jadi.kayaaa</span><span class="sub">· DEMO + INFO AKSES</span></div>
+<div class="btn follow">Follow</div>
+<div class="brand">
+  <svg viewBox="0 0 64 64"><circle cx="16" cy="16" r="10" fill="#23214a"/><circle cx="48" cy="16" r="10" fill="#23214a"/><circle cx="32" cy="36" r="24" fill="#ffffff" stroke="#23214a" stroke-width="3"/><ellipse cx="23" cy="34" rx="6" ry="8" fill="#23214a" transform="rotate(-20 23 34)"/><ellipse cx="41" cy="34" rx="6" ry="8" fill="#23214a" transform="rotate(20 41 34)"/><circle cx="32" cy="46" r="3.5" fill="#23214a"/></svg>
+  comel
+</div>
+<div class="safe"></div>
+<script src="map.js"></script>
+<script>
+  drawMap(document.getElementById('map'), { theme: 'pink' });
+  const pins = document.getElementById('pins');
+  [[180,760],[300,1180],[760,1220],[880,820],[150,1050],[640,1360],[860,1060],[260,900]].forEach(([x,y]) => {
+    const p = document.createElement('div'); p.className = 'pin'; p.style.left = x + 'px'; p.style.top = y + 'px'; pins.appendChild(p);
+  });
+</script>
+</body></html>

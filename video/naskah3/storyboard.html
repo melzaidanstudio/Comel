@@ -1,0 +1,334 @@
+<title>Storyboard Naskah 3</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: lembar produksi — kepala ringkas, garis waktu proporsional, galeri frame, lalu kartu adegan berurutan. */
+:root {
+  --bg: #faf8ff; --surface: #ffffff; --fg: #23214a; --muted: #6b6890; --line: #e6e1f7;
+  --sun: #ff7ea8; --sun-ink: #23214a; --cap: #23214a; --cap-fg: #ffffff; --sky: #3f83e6; --alarm: #d8344d; --leaf: #2a9d78;
+  --chip: #efebfd;
+  --display: "Bricolage Grotesque", "Inter", system-ui, sans-serif;
+  --body: "Inter", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #1b1933; --surface: #24213f; --fg: #f1eeff; --muted: #b0abd3; --line: #36325a;
+  --sun: #ff8fb4; --sun-ink: #23214a; --cap: #ff8fb4; --cap-fg: #23214a; --sky: #8ab8ff; --alarm: #ff7a8c; --leaf: #6fd8b4; --chip: #2e2a50; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #1b1933; --surface: #24213f; --fg: #f1eeff; --muted: #b0abd3; --line: #36325a;
+  --sun: #ff8fb4; --sun-ink: #23214a; --cap: #ff8fb4; --cap-fg: #23214a; --sky: #8ab8ff; --alarm: #ff7a8c; --leaf: #6fd8b4; --chip: #2e2a50; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 32px 80px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 44px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 800; line-height: 1.08; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(30px, 5vw, 48px); letter-spacing: -0.015em; }
+h2 { font-size: 24px; }
+h3 { font-size: 17px; }
+p { margin: 0; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.mono { font-family: var(--mono); }
+section { display: flex; flex-direction: column; gap: 16px; }
+.lead { color: var(--muted); max-width: 68ch; }
+
+/* kepala */
+header { display: flex; flex-direction: column; gap: 14px; }
+.status { display: inline-flex; align-self: flex-start; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; background: var(--sun); color: var(--sun-ink); padding: 6px 10px; border-radius: 4px; }
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--sun-ink); }
+.specs { display: flex; flex-wrap: wrap; gap: 8px; }
+.specs span { font-family: var(--mono); font-size: 12.5px; background: var(--chip); padding: 5px 10px; border-radius: 4px; }
+
+/* keputusan */
+.decide { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.q { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.q .proposal { font-family: var(--display); font-weight: 800; font-size: 19px; line-height: 1.2; }
+.q p { color: var(--muted); font-size: 14px; }
+
+/* garis waktu */
+.timeline { display: flex; height: 52px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+.timeline div { display: flex; flex-direction: column; justify-content: center; padding: 0 8px; font-size: 12px; font-weight: 600; min-width: 0; overflow: hidden; white-space: nowrap; border-right: 1px solid var(--bg); }
+.timeline div:last-child { border-right: 0; }
+.timeline small { font-family: var(--mono); font-weight: 500; font-size: 10.5px; opacity: .75; }
+.t-hook { background: #ffd0df; color: #23214a; }
+.t-story { background: #dcebff; color: #23214a; }
+.t-pain { background: #e4e1ee; color: #23214a; }
+.t-gain { background: #dff5ec; color: #23214a; }
+.t-offer { background: #e8e2ff; color: #23214a; }
+.t-cta { background: #ff7ea8; color: #23214a; }
+
+/* galeri */
+.frames { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; }
+.frames figure { margin: 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.frames img { width: 100%; aspect-ratio: 9 / 16; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); }
+.frames figcaption { font-size: 13px; color: var(--muted); }
+.frames figcaption b { color: var(--fg); font-weight: 600; }
+@media (max-width: 860px) { .frames { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .frames { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* adegan */
+.act { display: flex; align-items: baseline; gap: 12px; margin-top: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--fg); }
+.act .mono { font-size: 12px; color: var(--muted); }
+.scene { display: grid; grid-template-columns: 112px minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.tc { display: flex; flex-direction: column; gap: 4px; }
+.tc .id { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.tc .time { font-family: var(--mono); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tc .dur { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.tc .ref { align-self: flex-start; font-family: var(--mono); font-size: 11px; font-weight: 700; background: var(--chip); padding: 2px 6px; border-radius: 3px; }
+.visual { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.visual p + p { margin-top: 0; }
+.lbl { font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+.ost { display: inline-block; font-family: var(--display); font-weight: 800; font-size: 15px; background: var(--cap); color: var(--cap-fg); padding: 3px 8px; border-radius: 3px; line-height: 1.3; }
+.ost.none { background: transparent; color: var(--muted); font-family: var(--body); font-weight: 500; font-style: italic; padding: 0; }
+.audio { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.vo { font-size: 15px; border-left: 3px solid var(--sky); padding-left: 10px; }
+.sfx { font-size: 13.5px; color: var(--muted); }
+.flag { font-size: 13px; color: var(--alarm); font-weight: 600; }
+@media (max-width: 760px) {
+  .scene { grid-template-columns: 1fr; gap: 10px; }
+  .tc { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+}
+
+/* palet & tipe */
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+@media (max-width: 760px) { .two { grid-template-columns: 1fr; } }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.sw { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.sw i { display: block; height: 56px; }
+.sw div { padding: 8px 10px; font-size: 13px; }
+.sw .mono { font-size: 11.5px; color: var(--muted); }
+.type { display: flex; flex-direction: column; gap: 14px; }
+.type div { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+.type .s1 { font-family: var(--display); font-weight: 800; font-size: 30px; line-height: 1.05; }
+.type .s2 { font-family: var(--body); font-size: 16px; }
+.type .s3 { font-family: var(--mono); font-weight: 700; font-size: 22px; }
+.type small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 4px; font-family: var(--body); font-weight: 400; }
+
+/* daftar */
+.tbl { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+tr:last-child td { border-bottom: 0; }
+.ok { color: var(--leaf); font-weight: 700; }
+ul.rules { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+ol.steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; max-width: 75ch; }
+code { font-family: var(--mono); font-size: .9em; background: var(--chip); padding: 1px 5px; border-radius: 3px; }
+a { color: var(--sky); }
+:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+<header>
+  <span class="status">Menunggu persetujuan · belum ada TTS & render</span>
+  <div class="eyebrow">Comel · motion ads / explainer</div>
+  <h1>Naskah 3: “Orang di kotamu lagi nanya”</h1>
+  <div class="specs">
+    <span>9:16 · 1080×1920 · 30 fps</span><span>± 88 detik</span><span>VO ElevenLabs “Cahaya”</span><span>Hook → Story → Pain/Gain → Offer → CTA</span>
+  </div>
+  <p class="lead">Storyboard 17 adegan. Semua teks layar dan angka disalin persis dari naskah, termasuk label CONTOH NYATA dan CONTOH. Gaya visual: pastel ala Korea. Tiap babak punya latar pastel sendiri (lavender, biru langit, mint, ungu muda, pink), teks navy tua, dan pink stroberi sebagai warna “kamu”.</p>
+</header>
+
+<section>
+  <h2>Perlu dicek sebelum acc</h2>
+  <div class="decide">
+    <div class="q"><span class="eyebrow">[PROMO] · S16</span><span class="proposal">COBA DULU, KIRIM BELAKANGAN</span><p>Usulan saya (4 kata), diambil dari fitur uji coba yang memang ada. Saya tidak membuat diskon, harga, atau masa gratis karena belum ada datanya. Kalau ada penawaran nyata, kirim saja teksnya.</p></div>
+    <div class="q"><span class="eyebrow">Label · S12</span><span class="proposal">Chip “CONTOH” di kalender 7 hari</span><p>Naskah tidak memberi teks layar untuk bagian 7 hari, tetapi VO menyebut “contoh tujuh hari”. Saya usulkan chip kecil CONTOH agar konsisten. Bisa dihapus.</p></div>
+    <div class="q"><span class="eyebrow">Subtitle</span><span class="proposal">Hanya teks layar naskah</span><p>Tidak ada subtitle VO kata per kata. Kalau ingin subtitle penuh untuk penonton tanpa suara, saya tambahkan di bawah area aman.</p></div>
+    <div class="q"><span class="eyebrow">Teks UI tiruan</span><span class="proposal">KAMU · SAINGAN · Bogor · Uji coba · DRAF · TERKIRIM · Follow</span><p>Ini satu-satunya teks di luar naskah, sebagai label di UI generik. Tidak ada logo Threads/Meta, nama, atau foto asli.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>Garis waktu</h2>
+  <div class="timeline" aria-label="Pembagian durasi">
+    <div class="t-hook" style="flex:5">Hook<small>0–5</small></div>
+    <div class="t-story" style="flex:23">Story<small>5–28</small></div>
+    <div class="t-pain" style="flex:8">Pain<small>28–36</small></div>
+    <div class="t-gain" style="flex:25">Gain<small>36–61</small></div>
+    <div class="t-offer" style="flex:18.5">Offer + Promo<small>61–79,5</small></div>
+    <div class="t-cta" style="flex:8.5">CTA<small>79,5–88</small></div>
+  </div>
+</section>
+
+<section>
+  <h2>Style frame</h2>
+  <p class="lead">Gambar statis 1080×1920 untuk adegan kunci. Kotak merah putus-putus di versi kerja menandai area aman (tidak tertutup tombol aplikasi); di sini ditampilkan versi bersih.</p>
+  <div class="frames">
+    <figure><img src="frames/f1-hook.png" alt="Peta kota, gelembung pertanyaan, avatar KAMU dan SAINGAN berlomba; teks KAMU ATAU SAINGANMU?"><figcaption><b>F1 · S02</b> Hook: kamu atau saingan</figcaption></figure>
+    <figure><img src="frames/f2-story.png" alt="Kartu postingan disamarkan, like 14 diam, balasan 28 menyala biru; teks CONTOH NYATA: 14 LIKE · 28 BALASAN"><figcaption><b>F2 · S04</b> Story: counter balasan naik</figcaption></figure>
+    <figure><img src="frames/f3-filter.png" alt="Corong filter dengan LOKER, LOWONGAN, DIJUAL dicoret merah, komentar pink keluar di bawah"><figcaption><b>F3 · S10</b> Gain: corong filter</figcaption></figure>
+    <figure><img src="frames/f4-offer.png" alt="Panel uji coba aktif, tiga draf, angka terkirim 0; teks UJI COBA: 0 TERKIRIM"><figcaption><b>F4 · S14</b> Offer: uji coba, 0 terkirim</figcaption></figure>
+    <figure><img src="frames/f5-cta.png" alt="Peta malam, pin bisnismu paling terang, tombol Follow; teks FOLLOW @jadi.kayaaa · DEMO + INFO AKSES"><figcaption><b>F5 · S17</b> CTA: pin paling terang</figcaption></figure>
+  </div>
+</section>
+
+<section>
+  <h2>Adegan</h2>
+  <p class="lead">Timecode perkiraan berdasarkan tempo 2,4–2,6 kata/detik. Setelah VO jadi, timecode dikunci ke stempel waktu per kata dari ElevenLabs.</p>
+
+  <div class="act"><h3>Hook</h3><span class="mono">0:00–0:05</span></div>
+
+  <div class="scene">
+    <div class="tc"><span class="id">S01</span><span class="time">0:00–0:02.5</span><span class="dur">2,5 dtk</span></div>
+    <div class="visual"><p>Peta kota (blok lavender, sungai biru muda) tampil dengan zoom-in pelan. Gelembung pertanyaan putih “?” muncul di tengah dengan pop dan cincin pink berdenyut.</p><div><div class="lbl">Teks layar</div><span class="ost">MAKAN ENAK DI MANA?</span></div></div>
+    <div class="audio"><p class="vo">Orang di kotamu nanya: makan enak di mana?</p><p class="sfx">Musik mulai langsung (pluck/kalimba ±100 BPM). SFX “pop” saat gelembung muncul.</p></div>
+  </div>
+  <div class="scene">
+    <div class="tc"><span class="id">S02</span><span class="time">0:02.5–0:05</span><span class="dur">2,5 dtk</span><span class="ref">F1</span></div>
+    <div class="visual"><p>Dua avatar toko masuk dari bawah: KAMU (pink) dan SAINGAN (abu-lavender). Jejak titik menuju gelembung, keduanya berlari; kamera sedikit goyang. Teks pertama memudar menjadi bayangan.</p><div><div class="lbl">Teks layar</div><span class="ost">KAMU ATAU SAINGANMU?</span></div></div>
+    <div class="audio"><p class="vo">Yang jawab, kamu atau sainganmu?</p><p class="sfx">Whoosh dua arah, langkah ringan; beat masuk di “sainganmu”.</p></div>
+  </div>
+
+  <div class="act"><h3>Story</h3><span class="mono">0:05–0:28</span></div>
+
+  <div class="scene">
+    <div class="tc"><span class="id">S03</span><span class="time">0:05–0:08</span><span class="dur">3 dtk</span></div>
+    <div class="visual"><p>Zoom-through ke dalam gelembung; latar berganti ke biru langit pastel. Gelembung berubah menjadi kartu postingan generik: avatar blur, nama berupa bar abu, isi berupa garis samar. Chip CONTOH NYATA menempel di atas kartu.</p><div><div class="lbl">Teks layar</div><span class="ost">CONTOH NYATA:</span></div></div>
+    <div class="audio"><p class="vo">Ini nyata.</p><p class="sfx">Transisi swoosh, musik dipotong 0,3 dtk di “nyata” (stop-hit), lalu lanjut.</p></div>
+  </div>
+  <div class="scene">
+    <div class="tc"><span class="id">S04</span><span class="time">0:08–0:17</span><span class="dur">9 dtk</span><span class="ref">F2</span></div>
+    <div class="visual"><p>Counter like diam di 14 (abu, ada garis bawah “beku”). Counter balasan biru naik 0 → 28 sambil “+1” beterbangan; jam lingkaran di pojok berputar penuh (24 jam). Di “dua kali lipat”, angka 28 membesar sesaat.</p><div><div class="lbl">Teks layar</div><span class="ost">CONTOH NYATA: 14 LIKE · 28 BALASAN</span></div></div>
+    <div class="audio"><p class="vo">Satu pertanyaan rekomendasi makan di Bogor dapat 28 balasan dalam 24 jam. Likenya cuma 14, tapi balasannya dua kali lipat.</p><p class="sfx">Tick ringan tiap angka naik (makin cepat), “ding” saat 28.</p></div>
+  </div>
+  <div class="scene">
+    <div class="tc"><span class="id">S05</span><span class="time">0:17–0:23</span><span class="dur">6 dtk</span></div>
+    <div class="visual"><p>Kartu pertama bergeser ke kiri dan mengecil; kartu kedua (disamarkan) masuk dari kanan. Counter balasan naik ke 23, jam kecil hanya berputar 5 jam.</p><div><div class="lbl">Teks layar</div><span class="ost">CONTOH NYATA: 23 BALASAN / 5 JAM</span></div></div>
+    <div class="audio"><p class="vo">Satu lagi, mau belajar bahasa Jepang di Bogor, 23 balasan dalam 5 jam.</p><p class="sfx">Swipe; tick counter; “ding” di 23.</p></div>
+  </div>
+  <div class="scene">
+    <div class="tc"><span class="id">S06</span><span class="time">0:23–0:28</span><span class="dur">5 dtk</span></div>
+    <div class="visual"><p>Kartu membuka daftar balasan (garis samar). Satu balasan berbingkai pink naik ke atas dan bersinar; avatar penanya menoleh ke arahnya (ikon mata kecil).</p><div><div class="lbl">Teks layar</div><span class="ost none">tanpa teks layar</span></div></div>
+    <div class="audio"><p class="vo">Penanyanya lagi cari jawaban. Yang menjawab dengan tepat, dia yang berpeluang dilirik.</p><p class="sfx">Shimmer lembut saat balasan pink menyala.</p></div>
+  </div>
+
+  <div class="act"><h3>Pain → Gain</h3><span class="mono">0:28–1:01</span></div>
+
+  <div class="scene">
+    <div class="tc"><span class="id">S07</span><span class="time">0:28–0:36</span><span class="dur">8 dtk</span></div>
+    <div class="visual"><p>Ilustrasi datar: pemilik usaha di kasir melayani pelanggan; ponsel tertelungkup di meja. Jam dinding berdetak, tiap 15 menit ponsel bergetar dan notifikasi menumpuk tak tersentuh. Warna sedikit pudar.</p><div><div class="lbl">Teks layar</div><span class="ost">TIAP 15 MENIT</span></div></div>
+    <div class="audio"><p class="vo">Tapi kamu nggak bisa cek Threads tiap 15 menit, 64 kali sehari. Kamu sedang melayani pelanggan.</p><p class="sfx">Musik di-low-pass (redup), jam berdetak, buzz getar ponsel, bel kasir.</p></div>
+  </div>
+  <div class="scene">
+    <div class="tc"><span class="id">S08</span><span class="time">0:36–0:42</span><span class="dur">6 dtk</span></div>
+    <div class="visual"><p>Logo panda Comel muncul di layar ponsel yang berbalik; warna kembali cerah ke latar mint. Kolom kata kunci terketik “Bogor” (chip “nama kotamu”).</p><div><div class="lbl">Teks layar</div><span class="ost none">tanpa teks layar (hanya UI: Bogor)</span></div></div>
+    <div class="audio"><p class="vo">Comel yang mantengin buatmu. Masukkan kata kunci, misalnya nama kotamu.</p><p class="sfx">Musik kembali penuh di “Comel”. Suara ketik ringan.</p></div>
+  </div>
+  <div class="scene">
+    <div class="tc"><span class="id">S09</span><span class="time">0:42–0:49</span><span class="dur">7 dtk</span></div>
+    <div class="visual"><p>Corong filter digambar dari atas. Chip syarat menempel di bibir corong. Kartu postingan berjatuhan ke corong; yang terlalu lama atau sepi memantul keluar dan memudar.</p><div><div class="lbl">Teks layar</div><span class="ost">CONTOH: &lt; 24 JAM · MIN 5 BALASAN</span></div></div>
+    <div class="audio"><p class="vo">Atur syaratnya, contoh di bawah 24 jam dan minimal 5 balasan, biar kamu datang selagi obrolannya hangat;</p><p class="sfx">Klik saat chip menempel; “plop” kartu masuk corong.</p></div>
+  </div>
+  <div class="scene">
+    <div class="tc"><span class="id">S10</span><span class="time">0:49–0:52</span><span class="dur">3 dtk</span><span class="ref">F3</span></div>
+    <div class="visual"><p>Kata LOKER, LOWONGAN, DIJUAL tercoret merah satu per satu dan terlempar keluar corong.</p><div><div class="lbl">Teks layar</div><span class="ost">BUANG: LOKER · LOWONGAN · DIJUAL</span></div></div>
+    <div class="audio"><p class="vo">loker, lowongan, dijual dibuang.</p><p class="sfx">Tiga “scratch” pendek sinkron dengan tiap kata.</p></div>
+  </div>
+  <div class="scene">
+    <div class="tc"><span class="id">S11</span><span class="time">0:52–0:56</span><span class="dur">4 dtk</span></div>
+    <div class="visual"><p>Dari ujung corong keluar gelembung komentar pink; garis teks terisi satu per satu dengan kursor ketik. Ikon toko kecil (“info bisnismu”) menyumbang garis ke gelembung.</p><div><div class="lbl">Teks layar</div><span class="ost none">tanpa teks layar</span></div></div>
+    <div class="audio"><p class="vo">Comel menulis komentar yang menjawab pertanyaannya, pakai info bisnismu.</p><p class="sfx">Ketik lembut, “pop” saat gelembung selesai.</p></div>
+  </div>
+  <div class="scene">
+    <div class="tc"><span class="id">S12</span><span class="time">0:56–1:01</span><span class="dur">5 dtk</span></div>
+    <div class="visual"><p>Kalender 7 kotak: avatar yang sama di hari 1 dicentang, hari 2–6 bergembok, hari ke-7 terbuka. Chip kecil CONTOH di pojok kalender.</p><div><div class="lbl">Teks layar</div><span class="ost none">tanpa teks layar naskah</span> <span class="ost">CONTOH</span></div><p class="flag">Perlu acc: chip CONTOH di adegan ini.</p></div>
+    <div class="audio"><p class="vo">Orang yang sama baru disapa lagi setelah contoh 7 hari, biar nggak nyepam.</p><p class="sfx">Tick per hari, “unlock” di hari ke-7.</p></div>
+  </div>
+
+  <div class="act"><h3>Offer</h3><span class="mono">1:01–1:19.5</span></div>
+
+  <div class="scene">
+    <div class="tc"><span class="id">S13</span><span class="time">1:01–1:07</span><span class="dur">6 dtk</span></div>
+    <div class="visual"><p>Latar lavender. Kartu statistik ala dashboard generik: angka 43 naik dari 0, di sebelahnya “0” gagal kirim dengan tanda centang hijau.</p><div><div class="lbl">Teks layar</div><span class="ost">CONTOH NYATA: 43 KOMENTAR/24 JAM · 0 GAGAL KIRIM</span></div></div>
+    <div class="audio"><p class="vo">Contoh nyata dari dashboard: 43 komentar dalam 24 jam, 0 gagal kirim.</p><p class="sfx">Tick counter, “ding” di 43.</p></div>
+  </div>
+  <div class="scene">
+    <div class="tc"><span class="id">S14</span><span class="time">1:07–1:13</span><span class="dur">6 dtk</span><span class="ref">F4</span></div>
+    <div class="visual"><p>Saklar “Uji coba” digeser ON. Daftar “Preview” menyaring kartu yang lolos; draf bertanda DRAF tersusun. Counter TERKIRIM tetap 0 (berkedip sekali).</p><div><div class="lbl">Teks layar</div><span class="ost">UJI COBA: 0 TERKIRIM</span></div></div>
+    <div class="audio"><p class="vo">Mau coba dulu tanpa kirim apa pun? Preview menunjukkan yang lolos, mode uji coba menulis drafnya, 0 terkirim.</p><p class="sfx">Klik saklar, kertas tersusun.</p></div>
+  </div>
+  <div class="scene">
+    <div class="tc"><span class="id">S15</span><span class="time">1:13–1:17</span><span class="dur">4 dtk</span></div>
+    <div class="visual"><p>Jam pasir “5 jam” mengalir cepat di kiri; counter balasan 23 menyala di kanan. Avatar KAMU tiba terlambat dan berhenti.</p><div><div class="lbl">Teks layar</div><span class="ost">CONTOH NYATA: TELAT 5 JAM = 23 BALASAN DULUAN</span></div></div>
+    <div class="audio"><p class="vo">Telat 5 jam, 23 balasan sudah masuk duluan.</p><p class="sfx">Pasir mengalir, “thud” saat avatar berhenti.</p></div>
+  </div>
+  <div class="scene">
+    <div class="tc"><span class="id">S16</span><span class="time">1:17–1:19.5</span><span class="dur">2,5 dtk</span></div>
+    <div class="visual"><p>Kartu tersendiri: latar kuning butter pastel penuh, teks navy besar di tengah area aman.</p><div><div class="lbl">Teks layar · [PROMO]</div><span class="ost">COBA DULU, KIRIM BELAKANGAN</span></div><p class="flag">Perlu acc: isi promo.</p></div>
+    <div class="audio"><p class="vo">Coba dulu, kirim belakangan.</p><p class="sfx">Stop-hit pendek sebelum kartu, lalu riser ringan ke CTA.</p></div>
+  </div>
+
+  <div class="act"><h3>CTA</h3><span class="mono">1:19.5–1:28</span></div>
+
+  <div class="scene">
+    <div class="tc"><span class="id">S17</span><span class="time">1:19.5–1:28</span><span class="dur">8,5 dtk</span><span class="ref">F5</span></div>
+    <div class="visual"><p>Zoom-out ke peta kota pink pastel. Pin-pin lavender menyala bertahap; pin bisnismu paling terang dengan halo pink. Gelembung “?” baru muncul di dekatnya. Tombol Follow masuk dari bawah dan ditekan sekali. 1,5 dtk terakhir diam (hold) dengan logo comel.</p><div><div class="lbl">Teks layar</div><span class="ost">FOLLOW @jadi.kayaaa · DEMO + INFO AKSES</span></div></div>
+    <div class="audio"><p class="vo">Pertanyaan berikutnya tinggal tunggu waktu. Follow <span class="mono">jadi kaya aa</span> untuk lihat demo Comel dan info aksesnya.</p><p class="sfx">Swell musik, “chime” saat tombol ditekan, musik selesai bersih di 1:28.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>Palet & tipografi</h2>
+  <div class="two">
+    <div class="swatches">
+      <div class="sw"><i style="background:#23214a"></i><div>Navy<br><span class="mono">#23214A · teks, blok teks layar</span></div></div>
+      <div class="sw"><i style="background:#ff7ea8"></i><div>Pink stroberi<br><span class="mono">#FF7EA8 · KAMU, label, pin</span></div></div>
+      <div class="sw"><i style="background:#dcebff"></i><div>Biru langit<br><span class="mono">#DCEBFF · latar Story</span></div></div>
+      <div class="sw"><i style="background:#dff5ec"></i><div>Mint<br><span class="mono">#DFF5EC · latar Gain</span></div></div>
+      <div class="sw"><i style="background:#e8e2ff"></i><div>Lavender<br><span class="mono">#E8E2FF · latar Offer, blok peta</span></div></div>
+      <div class="sw"><i style="background:#ffe3ec"></i><div>Pink muda<br><span class="mono">#FFE3EC · latar CTA</span></div></div>
+      <div class="sw"><i style="background:#fff1b8"></i><div>Butter<br><span class="mono">#FFF1B8 · kartu promo</span></div></div>
+      <div class="sw"><i style="background:#5d9eff"></i><div>Biru balasan<br><span class="mono">#5D9EFF · angka balasan</span></div></div>
+      <div class="sw"><i style="background:#a7a3bf"></i><div>Saingan<br><span class="mono">#A7A3BF · avatar abu-lavender</span></div></div>
+      <div class="sw"><i style="background:#ff5a6e"></i><div>Buang<br><span class="mono">#FF5A6E · coret</span></div></div>
+    </div>
+    <div class="type">
+      <div><span class="s1">KAMU ATAU SAINGANMU?</span><small>Bricolage Grotesque ExtraBold: teks layar putih di blok navy, label di blok pink, rata kiri, 88 px (judul) / 60 px (label)</small></div>
+      <div><span class="s2">Uji coba · Follow · Preview</span><small>Inter: label UI tiruan</small></div>
+      <div><span class="s3">TERKIRIM 0 · DRAF</span><small>JetBrains Mono: chip, label kecil; angka besar memakai Bricolage</small></div>
+    </div>
+  </div>
+  <p class="lead">Area aman teks: x 72–960 px, y 260–1500 px pada kanvas 1080×1920, supaya teks tidak tertutup caption dan tombol aplikasi.</p>
+</section>
+
+<section>
+  <h2>Daftar aset</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Aset</th><th>Sumber</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Voice-over “Cahaya”, 1 file + stempel waktu per kata</td><td>ElevenLabs (setelah acc), butuh <code>ELEVENLABS_API_KEY</code></td><td>Menunggu acc + kunci API</td></tr>
+      <tr><td>Musik latar ±100 BPM, ceria-ringan, ±90 dtk</td><td>Pustaka bebas royalti dengan lisensi iklan (mis. pustaka audio platform), dipilih pengguna</td><td>Perlu dipilih</td></tr>
+      <tr><td>SFX: pop, whoosh, tick, ding, scratch, klik saklar, pasir, chime, bel kasir, getar ponsel</td><td>Pustaka SFX bebas royalti, atau disintesis</td><td>Perlu dipilih</td></tr>
+      <tr><td>Peta kota generik</td><td>Digambar ulang (vektor), bukan peta asli</td><td class="ok">Ada</td></tr>
+      <tr><td>Kartu postingan tiruan (avatar blur, nama bar)</td><td>Vektor/HTML</td><td class="ok">Ada</td></tr>
+      <tr><td>Ikon toko (KAMU/SAINGAN), hati, gelembung balasan, jam, jam pasir, kalender, corong, saklar</td><td>Vektor/HTML</td><td>Sebagian ada; jam pasir & kalender dibuat saat render</td></tr>
+      <tr><td>Ilustrasi pemilik usaha di kasir (S07)</td><td>Ilustrasi datar vektor, dibuat baru</td><td>Dibuat saat render</td></tr>
+      <tr><td>Tanda panda “comel”</td><td>Vektor sederhana dari ikon 🐼 aplikasi</td><td class="ok">Ada (draf)</td></tr>
+      <tr><td>Font: Bricolage Grotesque, Inter, JetBrains Mono</td><td>Google Fonts (lisensi OFL)</td><td class="ok">Ada</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>Batasan isi</h2>
+  <ul class="rules">
+    <li><span class="ok">✓</span> Tidak menyebut Repliz di teks layar, VO, maupun aset.</li>
+    <li><span class="ok">✓</span> Postingan Bogor ditampilkan tanpa username, foto profil, atau isi asli: avatar blur dan garis samar.</li>
+    <li><span class="ok">✓</span> UI tiruan generik; tanpa logo atau ikon resmi Threads/Meta.</li>
+    <li><span class="ok">✓</span> Tidak ada klaim di luar naskah (tanpa jaminan penjualan atau follower). Promo usulan hanya merujuk fitur uji coba.</li>
+    <li><span class="ok">✓</span> Label CONTOH NYATA / CONTOH ikut di setiap angka yang di naskah memakainya.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Setelah acc</h2>
+  <ol class="steps">
+    <li>Tambahkan <code>ELEVENLABS_API_KEY</code> di pengaturan environment cloud (bukan di chat).</li>
+    <li>Saya cari voice_id “Cahaya” di voice library, lalu buat VO dari teks di <code>video/naskah3/vo.txt</code> (model multibahasa, bahasa Indonesia) beserta stempel waktu per kata.</li>
+    <li>Timecode adegan dikunci ke stempel waktu VO; animasi dibuat di HTML/CSS dari style frame ini.</li>
+    <li>Render frame 1080×1920 @30 fps dengan Chromium, gabung VO + musik + SFX dengan ffmpeg (VO dominan, musik diturunkan saat ada suara, target ±−14 LUFS).</li>
+    <li>Kirim MP4 untuk ditinjau; revisi kecil sebelum versi final.</li>
+  </ol>
+</section>
+</div>

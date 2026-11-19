@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><title>F2 Story</title>
+<link rel="stylesheet" href="frame.css">
+<style>
+  .glow { position: absolute; left: 540px; top: 1180px; width: 900px; height: 900px; transform: translate(-50%,-50%); background: radial-gradient(closest-side, rgba(255,255,255,.75), transparent); }
+  .post { left: 72px; right: 72px; top: 760px; }
+  .who .bar:first-child { width: 260px; }
+  .who .col { display: flex; flex-direction: column; gap: 14px; }
+  .who .col .bar:last-child { width: 160px; height: 20px; background: #efecfa; }
+  .lines .bar:nth-child(1) { width: 100%; }
+  .lines .bar:nth-child(2) { width: 88%; }
+  .lines .bar:nth-child(3) { width: 54%; }
+  .m.dim { position: relative; }
+  .m.dim::after { content: ""; position: absolute; left: -6px; right: -6px; bottom: -14px; height: 6px; border-radius: 3px; background: #d9e0dc; }
+  .plus { position: absolute; font-family: var(--mono); font-weight: 800; font-size: 44px; color: var(--sky); }
+  .clock { position: absolute; right: 108px; top: 690px; width: 150px; height: 150px; z-index: 2; }
+  .note { position: absolute; left: 72px; top: 1460px; display: flex; gap: 18px; align-items: center; }
+  .note .post { position: static; width: 300px; padding: 22px 26px; border-radius: 22px; opacity: .7; transform: scale(.96); }
+  .note .post .lines { margin-top: 0; gap: 12px; }
+  .note .post .lines .bar { height: 18px; }
+  .tagrow { position: absolute; left: 72px; top: 640px; }
+</style></head>
+<body class="ink">
+<div class="glow"></div>
+<div class="cap"><span class="sm">CONTOH NYATA:</span><span>14 LIKE · 28 BALASAN</span></div>
+
+<svg class="clock" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="44" fill="none" stroke="#c3d8fb" stroke-width="10"/>
+  <circle cx="50" cy="50" r="44" fill="none" stroke="#5d9eff" stroke-width="10" stroke-dasharray="276.5" stroke-dashoffset="20" transform="rotate(-90 50 50)" stroke-linecap="round"/>
+  <line x1="50" y1="50" x2="50" y2="18" stroke="#23214a" stroke-width="6" stroke-linecap="round"/>
+  <line x1="50" y1="50" x2="70" y2="58" stroke="#23214a" stroke-width="6" stroke-linecap="round"/>
+</svg>
+
+<div class="post">
+  <div class="who"><div class="av"></div><div class="col"><div class="bar"></div><div class="bar"></div></div></div>
+  <div class="lines"><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+  <div class="metrics">
+    <div class="m dim"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>14</div>
+    <div class="m hot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12z"/></svg>28</div>
+  </div>
+</div>
+<div class="plus" style="left:760px;top:1300px">+1</div>
+<div class="plus" style="left:850px;top:1240px;opacity:.6">+1</div>
+<div class="plus" style="left:920px;top:1180px;opacity:.3">+1</div>
+
+<div class="note"><div class="post"><div class="lines"><div class="bar"></div><div class="bar" style="width:70%"></div></div></div></div>
+<div class="safe"></div>
+</body></html>

@@ -1,0 +1,59 @@
+/* Style frame Naskah 3 — kanvas 1080×1920 (9:16).
+   Area aman teks: x 72–960, y 260–1500 (atas & bawah tertutup UI aplikasi). */
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@700;800&display=swap");
+
+:root {
+  /* Pastel ala Korea: latar pastel per babak, teks navy tua, pink stroberi = KAMU */
+  --ink: #23214a;      /* navy: teks, blok teks layar */
+  --paper: #fbf9ff;    /* putih susu */
+  --pink: #ff7ea8;     /* KAMU, sorotan, pin bisnismu */
+  --pink-soft: #ffe3ec;/* latar CTA */
+  --lav: #e8e2ff;      /* latar Offer */
+  --lav-2: #d9d1fb;
+  --mint: #dff5ec;     /* latar Gain */
+  --mint-2: #59c9a5;
+  --sky: #5d9eff;      /* angka balasan */
+  --sky-soft: #dcebff; /* latar Story */
+  --butter: #fff1b8;   /* kartu promo */
+  --rival: #a7a3bf;    /* SAINGAN */
+  --alarm: #ff5a6e;    /* coret / buang */
+  --sun: var(--pink);
+  --white: #ffffff;
+  --display: "Bricolage Grotesque", "Inter", system-ui, sans-serif;
+  --body: "Inter", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1080px; height: 1920px; overflow: hidden; }
+body { font-family: var(--body); position: relative; }
+.paper { background: var(--paper); color: var(--ink); }
+.ink { background: var(--sky-soft); color: var(--ink); }
+
+/* Teks layar: blok kuning berlapis, rata kiri, di sepertiga atas */
+.cap { position: absolute; left: 72px; right: 120px; top: 300px; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; z-index: 5; }
+.cap span { font-family: var(--display); font-weight: 800; font-size: 88px; line-height: 1; letter-spacing: -0.01em; text-transform: none; background: var(--ink); color: var(--white); padding: 14px 24px 20px; border-radius: 6px; box-decoration-break: clone; }
+.cap span.sm { font-size: 60px; padding: 12px 22px 16px; background: var(--pink); color: var(--ink); }
+.cap span.ghost { background: transparent; color: inherit; opacity: .35; padding-left: 0; }
+.tag { display: inline-flex; align-items: center; gap: 12px; font-family: var(--mono); font-weight: 800; font-size: 34px; letter-spacing: .08em; padding: 10px 18px; border-radius: 4px; background: var(--white); color: var(--ink); }
+.tag::before { content: ""; width: 16px; height: 16px; border-radius: 50%; background: var(--alarm); }
+.ink .tag { background: var(--white); }
+
+/* Kartu postingan generik (bukan UI resmi) */
+.post { position: absolute; background: var(--white); color: var(--ink); border-radius: 36px; padding: 40px 44px; box-shadow: 0 30px 80px rgba(35,33,74,.16); }
+.who { display: flex; align-items: center; gap: 24px; }
+.av { width: 96px; height: 96px; border-radius: 50%; background: conic-gradient(from 40deg, #c9c2ee, #f6cfe0, #bfe6d6, #c9c2ee); filter: blur(5px); }
+.bar { height: 26px; border-radius: 13px; background: #e4e0f5; }
+.lines { display: flex; flex-direction: column; gap: 18px; margin-top: 36px; }
+.lines .bar { height: 30px; background: #efecfa; }
+.metrics { display: flex; align-items: flex-end; gap: 56px; margin-top: 44px; padding-top: 32px; border-top: 2px solid #f0edfa; }
+.m { display: flex; align-items: center; gap: 16px; font-family: var(--mono); font-weight: 800; font-size: 52px; color: #a7a3bf; }
+.m svg { width: 52px; height: 52px; }
+.m.hot { color: var(--sky); font-family: var(--display); font-size: 140px; line-height: .8; }
+.m.hot svg { width: 96px; height: 96px; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; font-family: var(--body); font-weight: 700; border-radius: 999px; }
+.brand { position: absolute; left: 72px; bottom: 300px; display: flex; align-items: center; gap: 18px; font-family: var(--display); font-weight: 800; font-size: 54px; }
+.brand svg { width: 72px; height: 72px; }
+.safe { display: none; }
+body.show-safe .safe { display: block; position: absolute; left: 72px; right: 120px; top: 260px; bottom: 420px; outline: 3px dashed rgba(255,0,0,.6); z-index: 99; }
