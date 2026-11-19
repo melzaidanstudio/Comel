@@ -15,7 +15,7 @@ export const GET = route(async () => {
     webhookTokenFromEnv: Boolean(process.env.REPLIZ_WEBHOOK_TOKEN),
     webhookPath: '/api/webhooks/repliz',
   };
-});
+}, { sessionOnly: true }); // berisi token webhook → hanya dari dashboard
 
 export const PUT = route(async (req) => {
   if ((await getReplizConnection()).source === 'env') {
@@ -27,4 +27,4 @@ export const PUT = route(async (req) => {
     const c = await getReplizConnection();
     if (c.source === 'none') throw new HttpError(400, missingKeysMessage(c));
   }
-});
+}, { sessionOnly: true }); // kunci Repliz hanya bisa diganti dari dashboard

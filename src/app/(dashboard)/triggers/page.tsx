@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ago, api, num, useAction, useApi } from '@/lib/client';
-import { earlyQueries, guessKeyword, keywordExpr } from '@/lib/recommend';
+import { earlyQueries, guessKeyword, isEarlyTrigger, isFood, keywordExpr, title } from '@/lib/recommend';
 
 export default function TriggersPage() {
   const trigs = useApi<TriggerJ[]>('/triggers');
@@ -185,18 +185,23 @@ function PreviewDialog({ t, data, onClose }: { t: TriggerJ; data: Preview; onClo
 
 /** Terapkan aturan yang disarankan (hasil uji pada data Threads asli) dalam 1–2 ketukan. */
 function RecommendDialog({ t, onClose, onDone }: { t: TriggerJ; onClose: () => void; onDone: () => void }) {
+  const early = isEarlyTrigger(t); // trigger "Komentator awal" sendiri: jangan buat salinannya
   const [kw, setKw] = useState(() => guessKeyword(t));
   const [applyViral, setApplyViral] = useState(true);
-  const [createEarly, setCreateEarly] = useState(true);
+  const [createEarly, setCreateEarly] = useState(!early);
   const [queriesText, setQueriesText] = useState(() => earlyQueries(t, guessKeyword(t) || 'kata').join('\n'));
+  const [queriesEdited, setQueriesEdited] = useState(false);
   const { busy, run } = useAction();
   const k = kw.trim().toLowerCase();
-  const changeKw = (v: string) => { setKw(v); setQueriesText(earlyQueries(t, v.trim().toLowerCase() || 'kata').join('\n')); };
+  const changeKw = (v: string) => {
+    setKw(v);
+    if (!queriesEdited) setQueriesText(earlyQueries(t, v.trim().toLowerCase() || 'kata').join('\n')); // jangan timpa ketikan pengguna
+  };
 
   const apply = () => run('rec', async () => {
     const r = await api<{ message: string }>(`/triggers/${t.id}/recommend`, {
       method: 'POST',
-      body: { keyword: k, applyViral, createEarly, earlyQueries: queriesText.split('\n').map((s) => s.trim()).filter(Boolean) },
+      body: { keyword: k, applyViral, createEarly, earlyQueries: queriesText.split('\n').map((s) => s.trim()).filter(Boolean).slice(0, 8) },
     });
     toast.success(`Diterapkan: ${r.message}. Tekan Preview untuk melihat hasilnya.`);
     onDone();
@@ -217,23 +222,24 @@ function RecommendDialog({ t, onClose, onDone }: { t: TriggerJ; onClose: () => v
           <div className="flex flex-col gap-2 rounded-lg border p-3">
             <SwitchField label={`Perbarui aturan "${t.name}"`} checked={applyViral} onChange={setApplyViral} />
             <ul className="ml-1 list-disc pl-4 text-xs text-muted-foreground">
-              <li>Topic tag mengandung &quot;{k || '…'}&quot;, hindari tag &quot;Loker …&quot;</li>
-              <li>Teks harus cocok: <code>{k ? keywordExpr(k, /kuliner|makan|jajan|food|resto|kafe|cafe|kopi|warung/i.test([t.name, t.topicTags, ...t.queries].join(' '))) : '…'}</code></li>
-              <li>Viral: suka ≥ 20 <b>atau</b> balasan ≥ 5</li>
-              <li>Terbaru dulu, umur ≤ 72 jam, 3 komentar tiap 15 menit</li>
+              {early ? null : <li>Topic tag mengandung &quot;{k || '…'}&quot;, hindari tag &quot;Loker …&quot;</li>}
+              <li>Teks harus cocok: <code>{k ? keywordExpr(k, isFood(t)) : '…'}</code></li>
+              <li>{early ? 'Tanpa syarat viral, umur ≤ 24 jam' : <>Viral: suka ≥ 20 <b>atau</b> balasan ≥ 5, umur ≤ 72 jam</>}</li>
+              <li>Terbaru dulu, 3 komentar tiap 15 menit</li>
             </ul>
           </div>
 
-          <div className="flex flex-col gap-2 rounded-lg border p-3">
-            <SwitchField label={`Buat trigger "Komentator awal${k ? ` ${k[0].toUpperCase()}${k.slice(1)}` : ''}"`} checked={createEarly} onChange={setCreateEarly} />
+          {early ? null : <div className="flex flex-col gap-2 rounded-lg border p-3">
+            <SwitchField label={`Buat atau perbarui trigger "Komentator awal${k ? ` ${title(k)}` : ''}"`} checked={createEarly} onChange={setCreateEarly} />
             <ul className="ml-1 list-disc pl-4 text-xs text-muted-foreground">
               <li>Postingan baru (≤ 24 jam) tanpa syarat viral — jadi pengomentar awal</li>
               <li>Mulai dalam <b>dry-run</b>; matikan setelah hasilnya pas</li>
             </ul>
             {createEarly ? (
-              <TextareaField label="Kata pencarian (satu per baris)" value={queriesText} onChange={setQueriesText} rows={3} />
+              <TextareaField label="Kata pencarian (satu per baris, maks. 8)" value={queriesText} rows={3}
+                onChange={(v) => { setQueriesText(v); setQueriesEdited(true); }} />
             ) : null}
-          </div>
+          </div>}
           <p className="text-xs text-muted-foreground">Bila &quot;maks postingan dicek metrik&quot; di Pengaturan masih di bawah 30, ikut dinaikkan ke 30.</p>
         </div>
         <DialogFooter className="m-0">

@@ -66,7 +66,7 @@ test('rekomendasi: kata utama & aturan', async () => {
   assert.equal(guessKeyword(t), 'bogor');
   assert.equal(guessKeyword({ ...t, topicTags: '', queries: [], name: 'Kopi Depok' }), 'depok');
   const v = viralRules(t, 'bogor');
-  assert.equal(v.matchExpr, 'bogor (kuliner OR makan OR jajan OR kopi OR resto OR cafe OR kafe OR warung OR enak OR menu OR kedai) -loker -lowongan -dijual');
+  assert.equal(v.matchExpr, '"bogor" (kuliner OR makan OR jajan OR kopi OR resto OR cafe OR kafe OR warung OR enak OR menu OR kedai) -loker -lowongan -dijual');
   const ast = parseExpr(v.matchExpr)!;
   assert.equal(evalExpr(ast, 'Bogor hujan guys'), false);
   assert.equal(evalExpr(ast, 'CRV 2 Ciomas Bogor'), false);
@@ -90,4 +90,16 @@ test('hasSearchSource: trigger tanpa sumber pencarian ditolak', () => {
   assert.equal(hasSearchSource({ ...base, topicTags: 'Kuliner Bogor', tagAsSource: false }), false);
   assert.equal(hasSearchSource({ ...base, matchExpr: 'bogor -loker' }), true);
   assert.equal(hasSearchSource({ ...base, matchExpr: '-loker' }), false);
+});
+
+test('rekomendasi: kata utama berupa operator tetap aman', async () => {
+  const { keywordExpr, title, isEarlyTrigger } = await import('../src/lib/recommend');
+  for (const kw of ['atau', 'or', 'not', 'dan', 'bukan', '-bogor', 'kota bogor']) {
+    const ast = parseExpr(keywordExpr(kw));
+    assert.ok(ast, kw);
+    assert.equal(evalExpr(ast!, `ada ${kw} di sini`), true, kw);
+  }
+  assert.equal(title('ñandu kota'), 'Ñandu Kota');
+  assert.equal(isEarlyTrigger({ name: 'Komentator awal Bogor' }), true);
+  assert.equal(isEarlyTrigger({ name: 'kuliner bogor viral' }), false);
 });

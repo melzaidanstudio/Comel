@@ -16,7 +16,8 @@ const FOOD = /kuliner|makan|jajan|food|resto|kafe|cafe|kopi|warung/i;
 const NOISE = ['loker', 'lowongan', 'dijual'];
 
 const words = (s: string) => s.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
-const title = (s: string) => s.replace(/\b\p{L}/gu, (c) => c.toUpperCase());
+/** Huruf besar di awal tiap kata (aman untuk huruf non-ASCII). */
+export const title = (s: string) => s.split(' ').map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w)).join(' ');
 
 /** Tebak kata utama (biasanya lokasi) dari topic tag, kata pencarian, atau nama trigger: "Kuliner Bogor" → "bogor". */
 export function guessKeyword(t: TriggerLike): string {
@@ -30,14 +31,15 @@ export function guessKeyword(t: TriggerLike): string {
 
 /** Kata yang menandakan postingan memang soal makanan (cocok sebagai awalan: "makan" ⊂ "makanan"). */
 const FOOD_TERMS = ['kuliner', 'makan', 'jajan', 'kopi', 'resto', 'cafe', 'kafe', 'warung', 'enak', 'menu', 'kedai'];
-const isFood = (t: TriggerLike) => FOOD.test([t.name, t.topicTags, ...t.queries].join(' '));
+export const isFood = (t: TriggerLike) => FOOD.test([t.name, t.topicTags, ...t.queries].join(' '));
 
 /**
  * Ekspresi teks: wajib memuat kata utama, tanpa lowongan/jual-beli. Untuk tema kuliner juga wajib
  * memuat kata makanan — kalau tidak, "Bogor hujan guys" atau "CRV 2 Ciomas Bogor" ikut lolos.
  */
 export function keywordExpr(kw: string, food = false) {
-  const main = kw.includes(' ') ? `"${kw}"` : kw;
+  // selalu dikutip: kata seperti "atau", "not", atau "-bogor" tetap dibaca sebagai kata, bukan operator
+  const main = `"${kw.replace(/"/g, '')}"`;
   return [main, ...(food ? [`(${FOOD_TERMS.join(' OR ')})`] : []), ...NOISE.map((n) => `-${n}`)].join(' ');
 }
 
@@ -84,3 +86,6 @@ export function earlyRules(t: TriggerLike, kw: string, queries: string[]) {
 
 /** Minimal postingan yang dicek metrik viralnya per putaran (Pengaturan). */
 export const RECOMMENDED_METRIC_LOOKUP = 30;
+
+/** Trigger yang dibuat oleh rekomendasi "Komentator awal" (jangan buat salinannya lagi). */
+export const isEarlyTrigger = (t: { name: string }) => /^komentator awal\b/i.test(t.name);

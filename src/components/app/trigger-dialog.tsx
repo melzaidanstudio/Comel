@@ -156,7 +156,7 @@ export function TriggerDialog({ open, onOpenChange, initial, editId, accounts, p
           </Section>
         </div>
         <DialogFooter className="m-0">
-          <Button variant="ghost" className="sm:mr-auto" title="Filter viral, waktu & jadwal kembali ke nilai yang disarankan. Nama, akun, kata kunci, topic tag, instruksi AI & dry-run tidak diubah."
+          <Button variant="ghost" className="sm:mr-auto" title="Filter viral, waktu, jadwal & cara mencocokkan tag kembali ke nilai yang disarankan. Nama, akun, kata kunci, daftar topic tag, instruksi AI & dry-run tidak diubah."
             onClick={() => { setF((p) => ({ ...p, ...RECOMMENDED })); toast.info('Filter & jadwal kembali ke nilai default. Klik Simpan untuk menerapkan.'); }}>
             <RotateCcw />Default
           </Button>
