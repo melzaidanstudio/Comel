@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { signIn, signUp } from '@/lib/auth-client';
+import { ComelLogo } from '@/components/app/comel-logo';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -42,7 +43,7 @@ export default function LoginPage() {
     <main className="flex min-h-svh items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <div className="text-3xl">🐼</div>
+          <ComelLogo className="size-12" />
           <CardTitle className="text-xl">{needsSetup ? 'Buat akun admin' : 'Masuk ke Comel'}</CardTitle>
           <CardDescription>
             {needsSetup

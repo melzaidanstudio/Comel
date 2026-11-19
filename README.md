@@ -1,4 +1,4 @@
-# 🐼 Comel — Threads Auto Comment & Reply
+# 🐥 Comel — Threads Auto Comment & Reply
 
 Aplikasi pribadi untuk:
 

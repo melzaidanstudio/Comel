@@ -13,6 +13,7 @@ import { signOut } from '@/lib/auth-client';
 import { api } from '@/lib/client';
 import { cn } from '@/lib/utils';
 import type { AppSettings } from '@/lib/types';
+import { ComelLogo } from '@/components/app/comel-logo';
 
 const NAV = [
   { href: '/', label: 'Dasbor', icon: Gauge },
@@ -79,18 +80,18 @@ export function AppShell({ children, userName }: { children: React.ReactNode; us
   return (
     <div className="min-h-svh lg:grid lg:grid-cols-[232px_1fr]">
       <aside className="sticky top-0 hidden h-svh flex-col gap-6 border-r bg-background p-4 lg:flex">
-        <div className="px-2 text-lg font-semibold">🐼 Comel</div>
+        <div className="flex items-center gap-2 px-2 text-lg font-semibold"><ComelLogo className="size-7" />Comel</div>
         <Nav />
         {footer}
       </aside>
       <header className="sticky top-0 z-30 flex items-center justify-between border-b bg-background/95 px-4 py-2 backdrop-blur lg:hidden">
-        <div className="font-semibold">🐼 Comel</div>
+        <div className="flex items-center gap-2 font-semibold"><ComelLogo />Comel</div>
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" aria-label="Menu"><Menu /></Button>
           </SheetTrigger>
           <SheetContent side="left" className="flex w-64 flex-col gap-6 p-4">
-            <SheetHeader className="p-0"><SheetTitle>🐼 Comel</SheetTitle></SheetHeader>
+            <SheetHeader className="p-0"><SheetTitle className="flex items-center gap-2"><ComelLogo />Comel</SheetTitle></SheetHeader>
             <Nav onNavigate={() => setOpen(false)} />
             {footer}
           </SheetContent>
