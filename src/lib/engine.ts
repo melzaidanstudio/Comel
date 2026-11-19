@@ -378,10 +378,14 @@ export async function runReplyJob(accountId: number, opts: { manual?: boolean } 
   return { status: opts.manual ? 'akun sedang menjalankan pekerjaan lain, coba lagi nanti' : status };
 }
 
-/** Dipanggil webhook `comment`: jadwalkan balas komentar akun ini secepatnya. */
+/**
+ * Dipanggil webhook `comment`: jadwalkan balas komentar akun ini secepatnya.
+ * Syaratnya sama dengan scheduler (akun aktif dan balas komentar aktif), supaya akun nonaktif tidak tampak "dijadwalkan".
+ */
 export async function nudgeReplies(replizAccountId: string) {
   const rows = await db.update(threadsAccounts).set({ nextReplyAt: new Date() })
-    .where(and(eq(threadsAccounts.replizAccountId, replizAccountId), eq(threadsAccounts.replyEnabled, true)))
+    .where(and(eq(threadsAccounts.replizAccountId, replizAccountId), eq(threadsAccounts.enabled, true),
+      eq(threadsAccounts.replyEnabled, true)))
     .returning({ id: threadsAccounts.id });
   return rows.length;
 }

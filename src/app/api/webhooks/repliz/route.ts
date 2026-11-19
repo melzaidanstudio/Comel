@@ -33,11 +33,16 @@ export async function POST(req: Request) {
       await log('info', 'webhook', `Komentar baru di Threads (${ev.accountId}), balas komentar dijadwalkan: ${text}`);
     } else {
       // jelaskan kenapa tidak dibalas, supaya tidak membingungkan di Log sistem
-      const [a] = await db.select({ name: threadsAccounts.name, username: threadsAccounts.username })
-        .from(threadsAccounts).where(eq(threadsAccounts.replizAccountId, ev.accountId)).limit(1);
-      const why = a
-        ? `"Balas komentar otomatis" belum aktif di akun ${a.name}${a.username ? ` (@${a.username})` : ''} — nyalakan di menu Akun Threads → Edit`
-        : 'akun Repliz ini belum ditambahkan di Comel — tambahkan lewat Akun Threads → Tambah dari Repliz';
+      const [a] = await db.select({
+        name: threadsAccounts.name, username: threadsAccounts.username,
+        enabled: threadsAccounts.enabled, replyEnabled: threadsAccounts.replyEnabled,
+      }).from(threadsAccounts).where(eq(threadsAccounts.replizAccountId, ev.accountId)).limit(1);
+      const label = a ? `${a.name}${a.username ? ` (@${a.username})` : ''}` : '';
+      const why = !a
+        ? 'akun Repliz ini belum ditambahkan di Comel — tambahkan lewat Akun Threads → Tambah dari Repliz'
+        : !a.enabled
+          ? `akun ${label} nonaktif — aktifkan di menu Akun Threads`
+          : `"Balas komentar otomatis" belum aktif di akun ${label} — nyalakan di menu Akun Threads → Edit`;
       await log('warn', 'webhook', `Komentar baru di Threads (${ev.accountId}) tidak dibalas: ${why}. Isi: ${text}`);
     }
   } else if (ev.type === 'keyword_match') {
