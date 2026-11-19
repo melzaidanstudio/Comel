@@ -111,8 +111,8 @@ export function TriggerDialog({ open, onOpenChange, initial, editId, accounts, p
 
           <Section title="Topic tag" description="Threads mengizinkan satu topic tag per postingan, mis. Kuliner Bogor.">
             <div className="flex flex-col gap-2 sm:col-span-2">
-              <TextareaField label="Topic tag (wajib salah satu)" value={f.topicTags} onChange={set('topicTags')} rows={2}
-                placeholder="Kuliner Bogor, Food Threads" help="Hanya postingan ber-tag ini yang dikomentari. Kosong = tanpa filter tag." />
+              <TextareaField label="Topic tag (opsional)" value={f.topicTags} onChange={set('topicTags')} rows={2}
+                placeholder="Kuliner Bogor, Food Threads" help="Boleh kosong. Bila diisi, hanya postingan ber-tag salah satu dari ini yang dikomentari." />
               <TagChips onPick={addTag} />
             </div>
             <SelectField label="Cara mencocokkan tag" value={f.tagMatch as 'exact' | 'contains'} onChange={set('tagMatch')}
